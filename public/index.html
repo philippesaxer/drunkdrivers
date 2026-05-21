@@ -281,9 +281,9 @@
     </div>
 
     <!-- ═══════════ CAR CUSTOMIZATION PANEL ═══════════ -->
-    <div id="customizePanel" class="glass rounded-2xl p-5 sm:p-6 w-full max-w-md mx-4 my-4 hidden" style="animation: floatIn 0.4s ease-out;">
+    <div id="customizePanel" class="glass rounded-2xl p-4 sm:p-5 w-full max-w-md mx-4 hidden" style="animation: floatIn 0.4s ease-out;">
 
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center justify-between mb-2">
         <h2 class="font-display text-lg font-bold tracking-wider text-neon-cyan">Customize</h2>
         <button id="customizeBack" class="font-display text-xs text-gray-400 hover:text-white transition-colors cursor-pointer">← Back</button>
       </div>
@@ -309,19 +309,19 @@
       </div>
       
       <!-- Skin Name -->
-      <div class="flex flex-col items-center mb-5 h-14 justify-start">
-        <div id="carouselSkinName" class="font-display text-sm text-neon-cyan uppercase tracking-widest font-bold drop-shadow-[0_0_5px_rgba(0,255,136,0.5)] mb-2">Clean</div>
-        <button id="equipSkinBtn" class="px-6 py-1.5 rounded-full font-display text-xs border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black transition-colors cursor-pointer hidden">EQUIP</button>
+      <div class="flex flex-col items-center mb-3 h-12 justify-start">
+        <div id="carouselSkinName" class="font-display text-sm text-neon-cyan uppercase tracking-widest font-bold drop-shadow-[0_0_5px_rgba(0,255,136,0.5)] mb-1">Clean</div>
+        <button id="equipSkinBtn" class="px-6 py-1 rounded-full font-display text-[10px] border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black transition-colors cursor-pointer hidden">EQUIP</button>
       </div>
 
       <!-- Color Picker -->
-      <div class="mb-4">
+      <div class="mb-3">
         <label class="block font-display text-[10px] text-gray-400 tracking-widest uppercase mb-1">Body Color</label>
-        <div id="colorSwatches" class="flex flex-wrap gap-2 sm:gap-3 justify-center p-2"></div>
+        <div id="colorSwatches" class="flex flex-wrap gap-2 justify-center p-1"></div>
       </div>
 
       <!-- Car Style -->
-      <div class="mb-4">
+      <div class="mb-3">
         <label class="block font-display text-[10px] text-gray-400 tracking-widest uppercase mb-1">Body Style</label>
         <div class="flex gap-2 justify-center">
           <button class="car-style-btn px-4 py-1.5 rounded-lg font-display text-[10px] tracking-wider cursor-pointer bg-white/5 border border-white/10 text-gray-300 hover:border-neon-cyan/40 transition-all selected" data-style="sleek">Sleek</button>
@@ -332,8 +332,8 @@
 
 
       <!-- Glow Intensity -->
-      <div>
-        <label class="block font-display text-[10px] text-gray-400 tracking-widest uppercase mb-2">Glow Intensity</label>
+      <div class="mb-2">
+        <label class="block font-display text-[10px] text-gray-400 tracking-widest uppercase mb-1">Glow Intensity</label>
         <input id="glowSlider" type="range" min="0" max="100" value="60"
                class="w-full h-1.5 rounded-full appearance-none cursor-pointer"
                style="background: linear-gradient(90deg, rgba(0,240,255,0.2), rgba(0,240,255,0.6));"
