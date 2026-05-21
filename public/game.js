@@ -522,16 +522,29 @@
 
   // ─── RENDER: VEHICLE ───────────────────────────────────────
   function drawVehicleShape(c, carW, carH, color, glowAmt, boosting) {
-    const glowIntensity = (glowAmt / 100) * 120 + 20;
+    const glowRatio = glowAmt / 100;
+    
     c.shadowColor = color;
-    c.shadowBlur = boosting ? glowIntensity * 2.5 : glowIntensity;
+    // Left = 0 blur. Right = 25 blur (keeps it focused but visible)
+    c.shadowBlur = boosting ? glowRatio * 40 : glowRatio * 25;
+    
     c.fillStyle = hexToRgba(color, boosting ? 0.3 : 0.15);
     drawRoundRect(c, -carW / 2, -carH / 2, carW, carH, CAR_CORNER);
     c.fill();
+    
     c.strokeStyle = color;
     c.lineWidth = boosting ? 2.5 : 2;
     drawRoundRect(c, -carW / 2, -carH / 2, carW, carH, CAR_CORNER);
     c.stroke();
+
+    // To make the glow "extremely strong" at 100%, we draw the stroke multiple times
+    // This layers the blur additively, creating a blinding neon effect without diluting it
+    if (glowRatio > 0) {
+      const extraLayers = Math.floor(glowRatio * 4); // Up to 4 extra layers of pure glow!
+      for (let i = 0; i < extraLayers; i++) {
+        c.stroke();
+      }
+    }
 
     c.shadowBlur = 0;
     c.strokeStyle = hexToRgba(color, 0.2);
