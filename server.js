@@ -546,8 +546,45 @@ function checkPitCollision(p) {
   if (!p.alive) return;
   for (const pit of PITS) {
     if (circleRect(p.x, p.y, PLAYER_RADIUS, pit.x, pit.y, pit.w, pit.h)) {
-      killPlayer(p, 'pit');
-      return;
+      // Find closest point on pit rectangle
+      let testX = p.x;
+      let testY = p.y;
+      if (p.x < pit.x) testX = pit.x;
+      else if (p.x > pit.x + pit.w) testX = pit.x + pit.w;
+      if (p.y < pit.y) testY = pit.y;
+      else if (p.y > pit.y + pit.h) testY = pit.y + pit.h;
+
+      let distX = p.x - testX;
+      let distY = p.y - testY;
+      let distance = Math.sqrt((distX*distX) + (distY*distY));
+      
+      if (distance > 0.01) {
+        let nx = distX / distance;
+        let ny = distY / distance;
+        
+        let overlap = PLAYER_RADIUS - distance;
+        if (overlap < 0) overlap = 0;
+        p.x += nx * (overlap + 2);
+        p.y += ny * (overlap + 2);
+
+        const dot = p.vx * nx + p.vy * ny;
+        if (dot < 0) {
+          p.vx -= 2 * dot * nx;
+          p.vy -= 2 * dot * ny;
+        }
+        p.vx += nx * 6; // Extra bounce kick
+        p.vy += ny * 6;
+      } else {
+        p.y -= 15;
+        p.vy = -10;
+      }
+      
+      p.hp -= 25;
+      collisionsThisTick.push({ x: p.x, y: p.y });
+      if (p.hp <= 0) {
+        killPlayer(p, 'pit');
+        return;
+      }
     }
   }
 }
@@ -569,7 +606,9 @@ function checkPillarCollisions(p) {
       p.vy -= 2 * dot * ny * 0.65;
 
       const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-      p.hp -= spd * 2.5;
+      // Reduce pillar damage and cap it so getting stuck doesn't instantly kill
+      const dmg = Math.min(spd * 0.8, 8); 
+      p.hp -= dmg;
       collisionsThisTick.push({ x: pillar.x + nx * pillar.radius, y: pillar.y + ny * pillar.radius });
 
       if (p.hp <= 0) {
@@ -614,8 +653,8 @@ function checkPlayerCollisions() {
         p2.y += ny * overlap * (p1.mass / totalMass);
 
         const relSpeed = Math.sqrt(dvx * dvx + dvy * dvy);
-        const dmg1 = relSpeed * 2.0 * p2.impactMultiplier * 0.4;
-        const dmg2 = relSpeed * 2.0 * p1.impactMultiplier * 0.4;
+        const dmg1 = relSpeed * 2.0 * p2.impactMultiplier * 0.15; // Reduced damage
+        const dmg2 = relSpeed * 2.0 * p1.impactMultiplier * 0.15; // Reduced damage
         p1.hp -= dmg1;
         p2.hp -= dmg2;
 
