@@ -559,6 +559,10 @@ function checkPitCollision(p) {
       let distY = p.y - testY;
       let distance = Math.sqrt((distX*distX) + (distY*distY));
       
+      const entrySpeed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+      const dmg = Math.min(30, 5 + entrySpeed * 1.5); // Base 5, max 30
+      const bounceForce = 4 + entrySpeed * 0.8; // Scales with how fast you hit it
+
       if (distance > 0.01) {
         let nx = distX / distance;
         let ny = distY / distance;
@@ -573,15 +577,13 @@ function checkPitCollision(p) {
           p.vx -= 2 * dot * nx;
           p.vy -= 2 * dot * ny;
         }
-        p.vx += nx * 6; // Extra bounce kick
-        p.vy += ny * 6;
+        p.vx += nx * bounceForce;
+        p.vy += ny * bounceForce;
       } else {
         p.y -= 15;
-        p.vy = -10;
+        p.vy = -bounceForce;
       }
       
-      const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-      const dmg = Math.max(10, spd * 3.5); // Damage scales with entry speed
       p.hp -= dmg;
       
       collisionsThisTick.push({ x: p.x, y: p.y });
