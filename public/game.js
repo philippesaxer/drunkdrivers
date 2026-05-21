@@ -26,9 +26,28 @@
     muscle:  { w: 47, h: 47, label: 'Muscle' },
     compact: { w: 73, h: 23, label: 'Compact' }
   };
+  
+  const CAR_SKINS = {
+    none: { label: 'Clean', desc: 'Default look', condition: () => true },
+    stripes: { label: 'Racer', desc: 'Score > 500 in one life', condition: (s) => s.highScore >= 500 },
+    taxi: { label: 'Taxi', desc: 'Survive 60s in one life', condition: (s) => s.longestSurvival >= 60 },
+    police: { label: 'Police', desc: 'Kill 3 players total', condition: (s) => s.totalKills >= 3 },
+    zebra: { label: 'Zebra', desc: 'Drink 20 items total', condition: (s) => s.totalDrinks >= 20 },
+    ghost: { label: 'Ghost', desc: 'Die to a red pit', condition: (s) => s.deathsByPit >= 1 }
+  };
+
+  // ─── PERSISTENT STATS ────────────────────────────────────────
+  let localStats = JSON.parse(localStorage.getItem('dd_stats') || '{"highScore":0,"totalDrinks":0,"totalKills":0,"deathsByPit":0,"longestSurvival":0}');
+  let unlockedSkins = JSON.parse(localStorage.getItem('dd_unlocked_skins') || '["none"]');
+
+  function saveStats() {
+    localStorage.setItem('dd_stats', JSON.stringify(localStats));
+    localStorage.setItem('dd_unlocked_skins', JSON.stringify(unlockedSkins));
+  }
 
   let customColor = CAR_COLORS[0];
   let customStyle = 'sleek';
+  let customSkin = 'none';
   let customGlow = 60;
 
   const EFFECT_LABELS = {
@@ -521,7 +540,7 @@
   }
 
   // ─── RENDER: VEHICLE ───────────────────────────────────────
-  function drawVehicleShape(c, carW, carH, color, glowAmt, boosting) {
+  function drawVehicleShape(c, carW, carH, color, skin, glowAmt, boosting) {
     const glowRatio = glowAmt / 100;
     
     c.shadowColor = color;
@@ -551,6 +570,51 @@
     c.lineWidth = 1;
     drawRoundRect(c, -carW / 2 + 4, -carH / 2 + 3, carW - 8, carH - 6, 2);
     c.stroke();
+
+    // ─── DRAW SKINS ─────────────────
+    c.save();
+    c.clip(); // Ensure patterns don't draw outside the car bounds
+    const time = performance.now();
+
+    if (skin === 'stripes') {
+      c.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      c.fillRect(-carW / 2, -5, carW, 2);
+      c.fillRect(-carW / 2, 3, carW, 2);
+    } else if (skin === 'taxi') {
+      c.fillStyle = '#ffcc00';
+      c.fillRect(-carW / 2 + 5, -carH / 2 + 2, carW - 10, carH - 4);
+      c.fillStyle = '#000';
+      for (let x = -carW / 2 + 10; x < carW / 2 - 10; x += 6) {
+        c.fillRect(x, -3, 3, 3);
+        c.fillRect(x + 3, 0, 3, 3);
+      }
+    } else if (skin === 'police') {
+      const isRed = (Math.floor(time / 150) % 2) === 0;
+      c.fillStyle = isRed ? '#ff0000' : '#0000ff';
+      c.shadowColor = isRed ? '#ff0000' : '#0000ff';
+      c.shadowBlur = 10;
+      c.fillRect(-2, -carH / 2 + 2, 4, carH - 4);
+      c.shadowBlur = 0;
+    } else if (skin === 'zebra') {
+      c.fillStyle = 'rgba(255,255,255,0.7)';
+      c.beginPath();
+      for (let x = -carW / 2; x < carW / 2; x += 10) {
+        c.moveTo(x, -carH / 2);
+        c.lineTo(x + 5, 0);
+        c.lineTo(x, carH / 2);
+        c.lineTo(x + 4, carH / 2);
+        c.lineTo(x + 9, 0);
+        c.lineTo(x + 4, -carH / 2);
+      }
+      c.fill();
+    } else if (skin === 'ghost') {
+      c.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      c.shadowColor = '#ffffff';
+      c.shadowBlur = 15;
+      drawRoundRect(c, -carW / 4, -carH / 4, carW / 2, carH / 2, 5);
+      c.fill();
+    }
+    c.restore();
 
     // Headlights
     c.shadowColor = '#ffffff';
@@ -598,7 +662,7 @@
     ctx.save();
     ctx.translate(s.x, s.y);
     ctx.rotate(p.rAngle);
-    drawVehicleShape(ctx, dims.w, dims.h, color, glow, p.boosting);
+    drawVehicleShape(ctx, dims.w, dims.h, color, p.skin, glow, p.boosting);
     ctx.restore();
 
     // Labels
@@ -847,7 +911,41 @@
     leaderboardList.innerHTML = html;
   }
 
+  function evaluateSkinUnlocks() {
+    let newlyUnlocked = [];
+    for (const [skinKey, skinData] of Object.entries(CAR_SKINS)) {
+      if (skinKey !== 'none' && !unlockedSkins.includes(skinKey)) {
+        if (skinData.condition(localStats)) {
+          unlockedSkins.push(skinKey);
+          newlyUnlocked.push(skinData.label);
+        }
+      }
+    }
+    if (newlyUnlocked.length > 0) {
+      saveStats();
+      // Show unlock message on death screen
+      const msg = document.createElement('div');
+      msg.className = 'absolute top-1/4 left-1/2 -translate-x-1/2 text-center z-50 pointer-events-none';
+      msg.style.animation = 'floatIn 0.5s ease-out, pulseText 2s infinite';
+      msg.innerHTML = `
+        <div class="font-display text-3xl md:text-5xl font-bold text-neon-magenta uppercase tracking-widest drop-shadow-[0_0_20px_rgba(255,0,229,1)]">UNLOCKED!</div>
+        <div class="font-body text-xl md:text-2xl text-white mt-2">${newlyUnlocked.join(', ')} Skin</div>
+      `;
+      deathScreen.appendChild(msg);
+      setTimeout(() => msg.remove(), 6000);
+      
+      // Update the customize panel to reflect the new unlocks
+      initCustomizer();
+    }
+  }
+
   function showDeathScreenUI(data) {
+    if (data.reason === 'pit') {
+      localStats.deathsByPit++;
+      saveStats();
+    }
+    evaluateSkinUnlocks();
+    
     deathScreen.classList.remove('hidden');
     if (data.killerName) {
       deathKiller.textContent = `Eliminated by ${data.killerName}`;
@@ -904,6 +1002,43 @@
       });
     });
 
+    // Skins
+    const skinContainer = document.getElementById('skinContainer');
+    if (skinContainer) {
+      let skinHtml = '';
+      for (const [key, skin] of Object.entries(CAR_SKINS)) {
+        const isUnlocked = unlockedSkins.includes(key);
+        const isSelected = key === customSkin;
+        
+        if (isUnlocked) {
+          skinHtml += `
+            <button class="skin-btn p-2 rounded-lg text-[10px] font-display uppercase border transition-all cursor-pointer ${isSelected ? 'border-neon-cyan text-neon-cyan bg-neon-cyan/10 shadow-[0_0_10px_rgba(0,240,255,0.3)]' : 'border-white/10 text-gray-300 bg-white/5 hover:border-white/30'}" data-skin="${key}">
+              ${skin.label}
+            </button>
+          `;
+        } else {
+          skinHtml += `
+            <button class="p-2 rounded-lg text-[9px] font-display border border-white/5 bg-black/40 text-gray-500 cursor-not-allowed flex flex-col items-center gap-1" disabled>
+              <div class="flex items-center gap-1 opacity-70">
+                <svg class="w-3 h-3" viewBox="0 0 24 24"><path fill="currentColor" d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" /></svg>
+                <span>${skin.label}</span>
+              </div>
+              <span class="text-[7px] text-gray-600">${skin.desc}</span>
+            </button>
+          `;
+        }
+      }
+      skinContainer.innerHTML = skinHtml;
+      
+      skinContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('.skin-btn');
+        if (!btn) return;
+        customSkin = btn.dataset.skin;
+        initCustomizer(); // re-render to update selected state
+        renderCarPreview();
+      });
+    }
+
     // Glow slider
     glowSlider.addEventListener('input', () => {
       customGlow = parseInt(glowSlider.value);
@@ -944,7 +1079,7 @@
     const dims = getCarDims(customStyle);
     c.save();
     c.translate(cw / 2, ch / 2);
-    drawVehicleShape(c, dims.w * 2, dims.h * 2, customColor, customGlow, false);
+    drawVehicleShape(c, dims.w * 2, dims.h * 2, customColor, customSkin, customGlow, false);
     c.restore();
   }
 
@@ -1001,6 +1136,19 @@
 
     socket.on('leaderboard', (data) => {
       leaderboard = data;
+      const myEntry = data.find(e => e.id === localId);
+      if (myEntry) {
+        let statsChanged = false;
+        if (myEntry.score > localStats.highScore) {
+          localStats.highScore = myEntry.score;
+          statsChanged = true;
+        }
+        if (myEntry.time > localStats.longestSurvival) {
+          localStats.longestSurvival = myEntry.time;
+          statsChanged = true;
+        }
+        if (statsChanged) saveStats();
+      }
       updateLeaderboardUI(data);
     });
 
@@ -1008,10 +1156,18 @@
     socket.on('respawned', () => hideDeathScreenUI());
 
     socket.on('pickup', (data) => {
+      localStats.totalDrinks++;
+      saveStats();
+      
       const local = getLocalPlayer();
       if (local) {
         spawnPickupBurst(local.rx, local.ry, data.type === 'drink' ? '#ff00e5' : '#00ff88');
       }
+    });
+
+    socket.on('kill_confirmed', () => {
+      localStats.totalKills++;
+      saveStats();
     });
   }
 
@@ -1099,7 +1255,8 @@
     const join = () => {
       if (!connected) return;
       const name = nicknameInput.value.trim() || 'Driver';
-      socket.emit('join', { name, color: customColor, style: customStyle, glow: customGlow });
+      console.log('Sending join with:', name, customColor, customStyle, customSkin, customGlow);
+      socket.emit('join', { name, color: customColor, style: customStyle, skin: customSkin, glow: customGlow });
     };
     playBtn.addEventListener('click', join);
     nicknameInput.addEventListener('keydown', (e) => {

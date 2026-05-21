@@ -196,7 +196,7 @@ function recalcStats(p) {
 //  PLAYER MANAGEMENT
 // ═══════════════════════════════════════════════════════════════
 
-function createPlayer(id, name, customColor, customStyle, customGlow) {
+function createPlayer(id, name, customColor, customStyle, customSkin, customGlow) {
   const pos = randomSafePosition(PLAYER_RADIUS);
   let color = nextColor();
   if (customColor && typeof customColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(customColor)) {
@@ -222,6 +222,7 @@ function createPlayer(id, name, customColor, customStyle, customGlow) {
     respawnTimer: 0,
     color: color,
     style: customStyle || 'sleek',
+    skin: customSkin || 'none',
     glow: customGlow !== undefined ? customGlow : 60,
     input: { targetAngle: null, moving: false, boost: false },
     effects: [],
@@ -275,6 +276,7 @@ function killPlayer(p, reason) {
     if (killer && killer.alive) {
       killer.score += KILL_SCORE;
       killerName = killer.name;
+      io.to(killer.id).emit('kill_confirmed');
     }
   }
 
@@ -764,6 +766,7 @@ function gameTick() {
       alive: p.alive,
       color: p.color,
       style: p.style,
+      skin: p.skin,
       glow: p.glow,
       effects: getEffectSerialData(p),
       boosting: p.boostActive,
@@ -799,9 +802,10 @@ io.on('connection', (socket) => {
   socket.on('join', (data) => {
     const name = (data && typeof data.name === 'string') ? data.name.trim() : 'Driver';
     const customColor = (data && typeof data.color === 'string') ? data.color : null;
-    const customStyle = (data && typeof data.style === 'string') ? data.style : 'sleek';
-    const customGlow = (data && typeof data.glow === 'number') ? data.glow : 60;
-    const player = createPlayer(socket.id, name, customColor, customStyle, customGlow);
+    const customStyle = typeof data.style === 'string' ? data.style : 'sleek';
+    const customSkin = typeof data.skin === 'string' ? data.skin : 'none';
+    const customGlow = typeof data.glow === 'number' ? data.glow : 60;
+    const player = createPlayer(socket.id, name, customColor, customStyle, customSkin, customGlow);
     players.set(socket.id, player);
     console.log(`[>] ${name} joined (${socket.id})`);
 
