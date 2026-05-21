@@ -1,0 +1,16 @@
+{
+  "name": "drunk-drivers-io",
+  "version": "1.0.0",
+  "description": "Drunk Drivers.io — 2D Top-Down Multiplayer .io Game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["game", "io", "multiplayer", "socket.io"],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.0",
+    "socket.io": "^4.7.5"
+  }
+}

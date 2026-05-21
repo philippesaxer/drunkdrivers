@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Drunk Drivers.io — Party Arena</title>
+  <meta name="description" content="Drunk Drivers.io — A chaotic multiplayer driving game where risk meets reward. Drink, drift, and dominate!" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- NippleJS for Joystick -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Orbitron', 'sans-serif'],
+            body: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            neon: {
+              cyan: '#00f0ff',
+              magenta: '#ff00e5',
+              green: '#00ff88',
+              red: '#ff0044',
+              yellow: '#ffd700',
+              purple: '#8b5cf6',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      font-family: 'Inter', sans-serif;
+      background: #050508;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      touch-action: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    canvas { display: block; position: absolute; top: 0; left: 0; z-index: 0; }
+
+    /* ── Neon glow keyframes ── */
+    @keyframes neonPulse {
+      0%, 100% { text-shadow: 0 0 10px #00f0ff, 0 0 30px #00f0ff, 0 0 60px #00f0ff; }
+      50% { text-shadow: 0 0 5px #00f0ff, 0 0 15px #00f0ff, 0 0 30px #00f0ff; }
+    }
+    @keyframes borderGlow {
+      0%, 100% { border-color: rgba(0, 240, 255, 0.4); box-shadow: 0 0 15px rgba(0, 240, 255, 0.15), inset 0 0 15px rgba(0, 240, 255, 0.05); }
+      50% { border-color: rgba(0, 240, 255, 0.7); box-shadow: 0 0 25px rgba(0, 240, 255, 0.25), inset 0 0 25px rgba(0, 240, 255, 0.1); }
+    }
+    @keyframes floatIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes promilleBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes badgePulse {
+      0%, 100% { box-shadow: 0 0 8px rgba(255, 0, 229, 0.4); }
+      50% { box-shadow: 0 0 16px rgba(255, 0, 229, 0.8); }
+    }
+    @keyframes deathFlash {
+      0% { opacity: 0; transform: scale(0.5); }
+      50% { opacity: 1; transform: scale(1.1); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    @keyframes btnGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.3), inset 0 0 20px rgba(0, 240, 255, 0.05); }
+      50% { box-shadow: 0 0 40px rgba(0, 240, 255, 0.5), inset 0 0 30px rgba(0, 240, 255, 0.1); }
+    }
+    @keyframes boostReady {
+      0%, 100% { box-shadow: 0 0 8px rgba(0, 240, 255, 0.4); }
+      50% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.8); }
+    }
+    @keyframes floatDecor {
+      0% { transform: translateY(0) rotate(-15deg); }
+      50% { transform: translateY(-20px) rotate(-10deg); }
+      100% { transform: translateY(0) rotate(-15deg); }
+    }
+    @keyframes floatDecor2 {
+      0% { transform: translateY(0) rotate(15deg); }
+      50% { transform: translateY(20px) rotate(10deg); }
+      100% { transform: translateY(0) rotate(15deg); }
+    }
+
+    .glass {
+      background: rgba(8, 10, 20, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      animation: borderGlow 3s ease-in-out infinite;
+    }
+    .glass-subtle {
+      background: rgba(8, 10, 20, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 240, 255, 0.12);
+    }
+    .neon-text { animation: neonPulse 2s ease-in-out infinite; }
+    .promille-blink { animation: promilleBlink 0.4s ease-in-out infinite; }
+
+    /* Color swatches */
+    .color-swatch {
+      width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+      border: 2px solid transparent; transition: all 0.2s;
+    }
+    .color-swatch:hover { transform: scale(1.15); }
+    .color-swatch.selected { border-color: #fff; box-shadow: 0 0 12px currentColor; transform: scale(1.15); }
+
+    /* Mobile touch controls */
+    .touch-btn {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; color: rgba(255,255,255,0.5);
+      transition: background 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .touch-btn:active, .touch-btn.pressed {
+      background: rgba(0, 240, 255, 0.2);
+      border-color: rgba(0, 240, 255, 0.5);
+      color: #00f0ff;
+    }
+    .touch-boost {
+      width: 70px; height: 70px; font-size: 14px; font-family: 'Orbitron', sans-serif;
+      font-weight: 700; letter-spacing: 1px;
+    }
+
+    /* Car preview canvas */
+    #carPreview { display: block; margin: 0 auto; position: relative !important; }
+  </style>
+</head>
+<body class="bg-black text-white font-body overflow-hidden w-full h-screen flex flex-col">
+
+  <!-- Background Layer -->
+  <div class="fixed inset-0 z-0 bg-[#050508]" style="background-image: radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.03), transparent 70%);"></div>
+
+  <!-- Main Layout Wrapper -->
+  <div class="relative z-10 flex-1 flex flex-row w-full h-full overflow-hidden">
+    
+    <!-- Left Ad Sidebar -->
+    <div class="hidden xl:flex flex-col justify-center items-center w-[300px] border-r border-white/5 bg-white p-4 shrink-0">
+      <div class="border border-dashed border-gray-400 w-full h-[600px] flex items-center justify-center text-black font-bold font-display tracking-widest text-sm text-center rounded-xl">AD SPACE<br>(Left)</div>
+    </div>
+    
+    <!-- Center Column -->
+    <div class="flex-1 flex flex-col overflow-hidden p-0">
+      
+      <!-- Game Wrapper -->
+      <div class="flex-1 flex flex-col p-0 sm:p-4 lg:p-6 overflow-hidden min-h-0">
+        <!-- Game Container -->
+        <div id="gameContainer" class="relative w-full h-full max-w-[1400px] mx-auto bg-[#060610] sm:rounded-2xl overflow-hidden sm:shadow-[0_0_50px_rgba(0,240,255,0.05)] sm:border border-white/10 flex-1 min-h-0">
+        
+        <!-- ═══════════ GAME CANVAS ═══════════ -->
+        <canvas id="gameCanvas" class="absolute inset-0 w-full h-full"></canvas>
+
+        <!-- ═══════════ MAIN MENU OVERLAY ═══════════ -->
+        <div id="menuOverlay" class="absolute inset-0 z-50 flex items-center justify-center overflow-hidden" style="background: radial-gradient(ellipse at center, rgba(0,15,30,0.85) 0%, rgba(5,5,8,0.98) 70%);">
+
+    <!-- Main Menu Card -->
+    <div id="menuCard" class="glass rounded-2xl p-6 sm:p-8 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto" style="animation: floatIn 0.6s ease-out;">
+
+      <!-- Title -->
+      <div class="text-center mb-6">
+        <h1 class="font-display text-3xl sm:text-5xl font-black tracking-wider text-neon-cyan neon-text mb-2">
+          DRUNK<br/>DRIVERS<span class="text-neon-magenta">.io</span>
+        </h1>
+        <p class="font-body text-xs sm:text-sm text-gray-400 tracking-widest uppercase mt-2">Party Arena</p>
+      </div>
+
+      <!-- Nickname Input -->
+      <div class="mb-4">
+        <label for="nicknameInput" class="block font-display text-[10px] text-gray-400 tracking-widest uppercase mb-1.5">Callsign</label>
+        <input
+          id="nicknameInput"
+          type="text"
+          maxlength="16"
+          placeholder="Enter your name..."
+          autocomplete="off"
+          class="w-full bg-black/50 border border-neon-cyan/20 rounded-xl px-4 py-3 text-white font-body text-base
+                 placeholder-gray-600 outline-none transition-all duration-300
+                 focus:border-neon-cyan/60 focus:shadow-[0_0_20px_rgba(0,240,255,0.15)]"
+        />
+      </div>
+
+      <!-- Customize Button -->
+      <button
+        id="customizeBtn"
+        class="w-full py-2.5 rounded-xl font-display text-xs font-bold tracking-widest uppercase mb-4
+               bg-white/5 border border-white/10 text-gray-300
+               transition-all duration-300 cursor-pointer
+               hover:bg-white/10 hover:border-neon-magenta/40 hover:text-neon-magenta
+               active:scale-[0.98]"
+      >
+        Customize Car
+      </button>
+
+      <!-- Play Button Section -->
+      <div class="flex items-center justify-between gap-3 w-full">
+        <!-- Neon Bottle Left -->
+        <div class="flex-shrink-0" style="animation: floatDecor 4s ease-in-out infinite;">
+          <svg viewBox="0 0 24 24" class="w-8 h-8 sm:w-10 sm:h-10 opacity-90 drop-shadow-[0_0_15px_rgba(0,255,136,1)] text-neon-green">
+            <path fill="currentColor" d="M12,2A1,1 0 0,0 11,3V6C10,6.5 9,7.5 9,9V19A2,2 0 0,0 11,21H13A2,2 0 0,0 15,19V9C15,7.5 14,6.5 13,6V3A1,1 0 0,0 12,2M12,4A1,1 0 0,1 13,5H11A1,1 0 0,1 12,4M11,7H13C13.5,7 14,7.5 14,8V19H10V8C10,7.5 10.5,7 11,7Z" />
+          </svg>
+        </div>
+
+        <!-- Play Button -->
+        <button
+          id="playBtn"
+          class="flex-1 py-4 rounded-xl font-display text-lg font-bold tracking-widest uppercase
+                 bg-gradient-to-r from-neon-cyan/20 to-neon-magenta/20
+                 border border-neon-cyan/40 text-neon-cyan
+                 transition-all duration-300 cursor-pointer
+                 hover:from-neon-cyan/30 hover:to-neon-magenta/30 hover:scale-[1.02] hover:border-neon-cyan/70
+                 active:scale-[0.98]"
+          style="animation: btnGlow 2s ease-in-out infinite;"
+        >
+          DRIVE
+        </button>
+
+        <!-- Neon Bottle Right -->
+        <div class="flex-shrink-0" style="animation: floatDecor2 4.5s ease-in-out infinite; animation-delay: -1s;">
+          <svg viewBox="0 0 24 24" class="w-8 h-8 sm:w-10 sm:h-10 opacity-90 drop-shadow-[0_0_15px_rgba(0,255,136,1)] text-neon-green">
+            <path fill="currentColor" d="M12,2A1,1 0 0,0 11,3V6C10,6.5 9,7.5 9,9V19A2,2 0 0,0 11,21H13A2,2 0 0,0 15,19V9C15,7.5 14,6.5 13,6V3A1,1 0 0,0 12,2M12,4A1,1 0 0,1 13,5H11A1,1 0 0,1 12,4M11,7H13C13.5,7 14,7.5 14,8V19H10V8C10,7.5 10.5,7 11,7Z" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Controls Info -->
+      <div class="mt-5 pt-4 border-t border-white/5 text-center">
+        <p class="font-body text-xs text-gray-500">
+          <span class="text-gray-400 font-medium">WASD</span> / <span class="text-gray-400 font-medium">Arrows</span> to drive &nbsp;·&nbsp; <span class="text-gray-400 font-medium">Space</span> to boost
+        </p>
+        <p class="font-body text-[10px] text-gray-600 mt-1">Drink to go fast. Try not to die.</p>
+      </div>
+    </div>
+
+    <!-- ═══════════ CAR CUSTOMIZATION PANEL ═══════════ -->
+    <div id="customizePanel" class="glass rounded-2xl p-6 sm:p-8 w-full max-w-md mx-4 hidden max-h-[90vh] overflow-y-auto" style="animation: floatIn 0.4s ease-out;">
+
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="font-display text-lg font-bold tracking-wider text-neon-cyan">Customize</h2>
+        <button id="customizeBack" class="font-display text-xs text-gray-400 hover:text-white transition-colors cursor-pointer">← Back</button>
+      </div>
+
+      <!-- Car Preview -->
+      <div class="mb-5">
+        <canvas id="carPreview" width="200" height="120" class="rounded-lg" style="background: rgba(6,6,16,0.8);"></canvas>
+      </div>
+
+      <!-- Color Picker -->
+      <div class="mb-5">
+        <label class="block font-display text-[10px] text-gray-400 tracking-widest uppercase mb-2">Body Color</label>
+        <div id="colorSwatches" class="flex flex-wrap gap-3 justify-center p-4"></div>
+      </div>
+
+      <!-- Car Style -->
+      <div class="mb-5">
+        <label class="block font-display text-[10px] text-gray-400 tracking-widest uppercase mb-2">Body Style</label>
+        <div class="flex gap-2 justify-center">
+          <button class="car-style-btn px-4 py-2 rounded-lg font-display text-[10px] tracking-wider cursor-pointer bg-white/5 border border-white/10 text-gray-300 hover:border-neon-cyan/40 transition-all selected" data-style="sleek">Sleek</button>
+          <button class="car-style-btn px-4 py-2 rounded-lg font-display text-[10px] tracking-wider cursor-pointer bg-white/5 border border-white/10 text-gray-300 hover:border-neon-cyan/40 transition-all" data-style="muscle">Muscle</button>
+          <button class="car-style-btn px-4 py-2 rounded-lg font-display text-[10px] tracking-wider cursor-pointer bg-white/5 border border-white/10 text-gray-300 hover:border-neon-cyan/40 transition-all" data-style="compact">Compact</button>
+        </div>
+      </div>
+
+      <!-- Glow Intensity -->
+      <div>
+        <label class="block font-display text-[10px] text-gray-400 tracking-widest uppercase mb-2">Glow Intensity</label>
+        <input id="glowSlider" type="range" min="0" max="100" value="60"
+               class="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+               style="background: linear-gradient(90deg, rgba(0,240,255,0.2), rgba(0,240,255,0.6));"
+        />
+      </div>
+    </div>
+        </div>
+
+        <!-- ═══════════ IN-GAME HUD ═══════════ -->
+        <div id="gameHUD" class="hidden absolute inset-0 pointer-events-none">
+
+    <!-- Promille Bar (Top Left) -->
+    <div class="absolute top-3 left-3 sm:top-4 sm:left-4 w-60 sm:w-72">
+      <div class="glass-subtle rounded-xl px-3 sm:px-4 py-2 sm:py-3">
+        <div class="flex items-center justify-between mb-1">
+          <span class="font-display text-[9px] sm:text-[10px] text-gray-400 tracking-widest uppercase">Blood Alcohol</span>
+          <span id="promilleValue" class="font-display text-xs sm:text-sm font-bold text-neon-green">0.00‰</span>
+        </div>
+        <div class="w-full h-2.5 sm:h-3 bg-black/60 rounded-full overflow-hidden border border-white/5">
+          <div id="promilleBarFill" class="h-full rounded-full transition-all duration-300 ease-out" style="width: 0%; background: linear-gradient(90deg, #00ff88, #00ff88);"></div>
+        </div>
+      </div>
+
+      <!-- Effect Badges (below promille bar) -->
+      <div id="effectBadges" class="flex flex-wrap justify-start gap-1.5 mt-1.5"></div>
+    </div>
+
+    <!-- Leaderboard (Top Right) -->
+    <div class="absolute top-3 right-3 w-44 sm:w-52 hidden sm:block">
+      <div class="glass-subtle rounded-xl px-3 py-2 sm:py-3">
+        <div class="font-display text-[9px] sm:text-[10px] text-gray-400 tracking-widest uppercase mb-2 text-center">Leaderboard</div>
+        <div id="leaderboardList" class="space-y-1"></div>
+      </div>
+    </div>
+
+    <!-- Score (Bottom Center) -->
+    <div class="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2">
+      <div class="glass-subtle rounded-xl px-5 py-1.5 sm:px-6 sm:py-2 text-center">
+        <span class="font-display text-[9px] sm:text-xs text-gray-400 tracking-widest uppercase">Score</span>
+        <div id="scoreValue" class="font-display text-xl sm:text-2xl font-bold text-white">0</div>
+      </div>
+    </div>
+
+    <!-- HP Bar (Bottom Left above minimap) -->
+    <div class="absolute bottom-[180px] sm:bottom-44 left-3 sm:left-4 w-32 sm:w-40">
+      <div class="glass-subtle rounded-lg px-2 sm:px-3 py-1.5 sm:py-2">
+        <div class="flex items-center justify-between mb-1">
+          <span class="font-display text-[8px] sm:text-[9px] text-gray-400 tracking-widest uppercase">Hull</span>
+          <span id="hpValue" class="font-display text-[9px] sm:text-[10px] font-bold text-neon-green">100</span>
+        </div>
+        <div class="w-full h-1.5 sm:h-2 bg-black/60 rounded-full overflow-hidden border border-white/5">
+          <div id="hpBarFill" class="h-full rounded-full transition-all duration-200" style="width: 100%; background: #00ff88;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Boost Bar (Bottom Left, below HP) -->
+    <div class="absolute bottom-[140px] sm:bottom-36 left-3 sm:left-4 w-32 sm:w-40">
+      <div class="glass-subtle rounded-lg px-2 sm:px-3 py-1.5 sm:py-2">
+        <div class="flex items-center justify-between mb-1">
+          <span class="font-display text-[8px] sm:text-[9px] text-gray-400 tracking-widest uppercase">Boost</span>
+          <span id="boostLabel" class="font-display text-[9px] sm:text-[10px] font-bold text-neon-cyan">READY</span>
+        </div>
+        <div class="w-full h-1.5 sm:h-2 bg-black/60 rounded-full overflow-hidden border border-white/5">
+          <div id="boostBarFill" class="h-full rounded-full transition-all duration-150" style="width: 100%; background: #00f0ff;"></div>
+        </div>
+      </div>
+    </div>
+
+
+
+        <!-- ═══════════ MOBILE TOUCH CONTROLS ═══════════ -->
+        <div id="touchControls" class="hidden md:hidden pointer-events-auto">
+          <!-- Joystick Left Side (Dynamic) -->
+          <div id="joystickZone" class="absolute top-0 left-0 w-1/2 h-full z-10"></div>
+          
+          <!-- Boost Right Side -->
+          <div class="absolute bottom-12 right-5">
+            <button id="touchBoost" class="touch-btn touch-boost">BOOST</button>
+          </div>
+        </div>
+
+        <!-- Death Screen -->
+        <div id="deathScreen" class="absolute inset-0 flex items-center justify-center hidden z-40" style="background: rgba(0,0,0,0.6); pointer-events: auto;">
+      <div class="text-center" style="animation: deathFlash 0.5s ease-out;">
+        <div class="font-display text-5xl sm:text-6xl font-black text-neon-red mb-2" style="text-shadow: 0 0 30px #ff0044, 0 0 60px #ff0044;">
+          WASTED
+        </div>
+        <div id="deathKiller" class="font-body text-base sm:text-lg text-gray-300 mb-4"></div>
+        <div class="font-display text-sm text-gray-400">
+          Respawning in <span id="deathTimer" class="text-neon-cyan font-bold">3</span>s
+        </div>
+      </div>
+        </div>
+        
+        </div> <!-- End gameHUD -->
+        
+      </div> <!-- End Game Container -->
+      </div> <!-- End Game Wrapper -->
+
+      <!-- Bottom Ad Space Wrapper -->
+      <div class="w-full bg-white hidden sm:flex justify-center p-4 shrink-0 border-t border-white/5">
+        <div class="w-full max-w-[1400px] h-[90px] border border-dashed border-gray-400 flex items-center justify-center text-black font-bold font-display tracking-widest text-sm rounded-xl">
+          BOTTOM AD SPACE
+        </div>
+      </div>
+    </div> <!-- End Center Column -->
+
+    <!-- Right Ad Sidebar -->
+    <div class="hidden xl:flex flex-col justify-center items-center w-[300px] border-l border-white/5 bg-white p-4 shrink-0">
+      <div class="border border-dashed border-gray-400 w-full h-[600px] flex items-center justify-center text-black font-bold font-display tracking-widest text-sm text-center rounded-xl">AD SPACE<br>(Right)</div>
+    </div>
+    
+  </div> <!-- End Layout Wrapper -->
+
+  <!-- ═══════════ SCRIPTS ═══════════ -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/game.js"></script>
+
+</body>
+</html>
