@@ -33,7 +33,12 @@
     taxi: { label: 'Taxi', desc: 'Survive 60s in one life', condition: (s) => s.longestSurvival >= 60 },
     police: { label: 'Police', desc: 'Kill 3 players total', condition: (s) => s.totalKills >= 3 },
     zebra: { label: 'Zebra', desc: 'Drink 20 items total', condition: (s) => s.totalDrinks >= 20 },
-    ghost: { label: 'Ghost', desc: 'Die to a red pit', condition: (s) => s.deathsByPit >= 1 }
+    ghost: { label: 'Ghost', desc: 'Die to a red pit', condition: (s) => s.deathsByPit >= 1 },
+    demon: { label: 'Demon', desc: 'Kill 50 players total', condition: (s) => s.totalKills >= 50 },
+    cyberpunk: { label: 'Cyber', desc: 'Score > 5000 in one life', condition: (s) => s.highScore >= 5000 },
+    gold: { label: 'VIP Gold', desc: 'Drink 500 items total', condition: (s) => s.totalDrinks >= 500 },
+    veteran: { label: 'Veteran', desc: 'Survive 300s in one life', condition: (s) => s.longestSurvival >= 300 },
+    void: { label: 'Void', desc: 'Die to pits 50 times', condition: (s) => s.deathsByPit >= 50 }
   };
 
   // ─── PERSISTENT STATS ────────────────────────────────────────
@@ -623,6 +628,59 @@
       c.shadowBlur = 15;
       drawRoundRect(c, -carW / 4, -carH / 4, carW / 2, carH / 2, 5);
       c.fill();
+    } else if (skin === 'demon') {
+      const grad = c.createLinearGradient(-carW/2, 0, carW/2, 0);
+      grad.addColorStop(0, '#ff0000');
+      grad.addColorStop(1, '#ffaa00');
+      c.fillStyle = grad;
+      c.beginPath();
+      c.moveTo(carW/2, 0);
+      c.lineTo(carW/4, -carH/3);
+      c.lineTo(0, -carH/6);
+      c.lineTo(-carW/4, -carH/2);
+      c.lineTo(-carW/2, 0);
+      c.lineTo(-carW/4, carH/2);
+      c.lineTo(0, carH/6);
+      c.lineTo(carW/4, carH/3);
+      c.fill();
+    } else if (skin === 'cyberpunk') {
+      c.strokeStyle = '#00f0ff';
+      c.lineWidth = 1;
+      for (let x = -carW/2 + 5; x < carW/2; x += 8) {
+        c.beginPath(); c.moveTo(x, -carH/2); c.lineTo(x, carH/2); c.stroke();
+      }
+      c.strokeStyle = '#ff00e5';
+      for (let y = -carH/2 + 5; y < carH/2; y += 8) {
+        c.beginPath(); c.moveTo(-carW/2, y); c.lineTo(carW/2, y); c.stroke();
+      }
+    } else if (skin === 'gold') {
+      const g = c.createLinearGradient(-carW/2, -carH/2, carW/2, carH/2);
+      g.addColorStop(0, '#bf953f');
+      g.addColorStop(0.25, '#fcf6ba');
+      g.addColorStop(0.5, '#b38728');
+      g.addColorStop(0.75, '#fbf5b7');
+      g.addColorStop(1, '#aa771c');
+      c.fillStyle = g;
+      c.fillRect(-carW/2, -carH/2, carW, carH);
+    } else if (skin === 'veteran') {
+      c.fillStyle = '#4a5d23'; // base camo
+      c.fillRect(-carW/2, -carH/2, carW, carH);
+      c.fillStyle = '#313d17';
+      c.beginPath(); c.arc(-carW/4, -carH/4, 6, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(carW/6, carH/3, 8, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#222';
+      c.beginPath(); c.arc(0, 0, 5, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(carW/3, -carH/3, 4, 0, Math.PI*2); c.fill();
+    } else if (skin === 'void') {
+      c.fillStyle = '#000';
+      c.fillRect(-carW/2, -carH/2, carW, carH);
+      c.shadowColor = '#aa00ff';
+      c.shadowBlur = 20;
+      c.strokeStyle = '#fff';
+      c.lineWidth = 2;
+      drawRoundRect(c, -carW/2 + 2, -carH/2 + 2, carW - 4, carH - 4, 3);
+      c.stroke();
+      c.shadowBlur = 0;
     }
     c.restore();
 
