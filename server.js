@@ -280,12 +280,14 @@ function killPlayer(p, reason) {
     }
   }
 
+  const finalScore = Math.floor(p.score);
   p.score = 0;
 
   io.to(p.id).emit('killed', {
     reason,
     killerName: killerName || null,
-    respawnTime: RESPAWN_TICKS / TICK_RATE
+    respawnTime: RESPAWN_TICKS / TICK_RATE,
+    finalScore
   });
 }
 
@@ -701,7 +703,7 @@ function checkItemPickups() {
 function getLeaderboard() {
   return Array.from(players.values())
     .filter(p => p.alive)
-    .sort((a, b) => a.spawnTick - b.spawnTick)
+    .sort((a, b) => b.score - a.score)
     .slice(0, 10)
     .map(p => ({
       name: p.name,

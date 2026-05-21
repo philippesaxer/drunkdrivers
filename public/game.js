@@ -40,10 +40,19 @@
   let localStats = JSON.parse(localStorage.getItem('dd_stats') || '{"highScore":0,"totalDrinks":0,"totalKills":0,"deathsByPit":0,"longestSurvival":0}');
   let unlockedSkins = JSON.parse(localStorage.getItem('dd_unlocked_skins') || '["none"]');
 
+  function updateMenuHighscoreUI() {
+    const el = document.getElementById('menuHighscore');
+    if (el) el.textContent = Math.floor(localStats.highScore);
+  }
+
   function saveStats() {
     localStorage.setItem('dd_stats', JSON.stringify(localStats));
     localStorage.setItem('dd_unlocked_skins', JSON.stringify(unlockedSkins));
+    updateMenuHighscoreUI();
   }
+  
+  // Init highscore UI on load
+  document.addEventListener('DOMContentLoaded', updateMenuHighscoreUI);
 
   let customColor = CAR_COLORS[0];
   let customStyle = 'sleek';
@@ -945,7 +954,19 @@
       localStats.deathsByPit++;
       saveStats();
     }
+    
+    let currentScore = data.finalScore || 0;
+    if (currentScore > localStats.highScore) {
+      localStats.highScore = currentScore;
+      saveStats();
+    }
+    
     evaluateSkinUnlocks();
+    
+    const dScore = document.getElementById('deathScore');
+    const dHigh = document.getElementById('deathHighscore');
+    if (dScore) dScore.textContent = currentScore;
+    if (dHigh) dHigh.textContent = localStats.highScore;
     
     deathScreen.classList.remove('hidden');
     if (data.killerName) {
