@@ -362,6 +362,7 @@ function initItems() {
 }
 
 function pickupItem(player, item) {
+  player.score += 10; // New way to get points!
   if (item.type === 'drink') {
     player.promille = Math.min(MAX_PROMILLE, player.promille + DRINK_PROMILLE);
     const effectType = item.effect || EFFECT_TYPES[Math.floor(Math.random() * EFFECT_TYPES.length)];
@@ -579,7 +580,10 @@ function checkPitCollision(p) {
         p.vy = -10;
       }
       
-      p.hp -= 25;
+      const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+      const dmg = Math.max(10, spd * 3.5); // Damage scales with entry speed
+      p.hp -= dmg;
+      
       collisionsThisTick.push({ x: p.x, y: p.y });
       if (p.hp <= 0) {
         killPlayer(p, 'pit');
@@ -741,6 +745,9 @@ function gameTick() {
   // Broadcast state
   const playerArr = [];
   for (const p of players.values()) {
+    if (p.alive && currentTick % TICK_RATE === 0) {
+      p.score += 2; // +2 points per second for surviving
+    }
     playerArr.push({
       id: p.id,
       x: Math.round(p.x * 10) / 10,
