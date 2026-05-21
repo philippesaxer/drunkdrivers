@@ -282,9 +282,29 @@
         <button id="customizeBack" class="font-display text-xs text-gray-400 hover:text-white transition-colors cursor-pointer">← Back</button>
       </div>
 
-      <!-- Car Preview -->
-      <div class="mb-4">
-        <canvas id="carPreview" width="200" height="90" class="rounded-lg mx-auto" style="background: rgba(6,6,16,0.8);"></canvas>
+      <!-- Car Preview & Skin Carousel -->
+      <div class="mb-2 relative flex items-center justify-center px-8">
+        <button id="carouselPrev" class="absolute left-0 p-2 text-neon-cyan hover:scale-110 transition-transform cursor-pointer z-10">
+          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M15.41 16.58L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.42z"/></svg>
+        </button>
+        
+        <div class="relative">
+          <canvas id="carPreview" width="200" height="90" class="rounded-lg mx-auto" style="background: rgba(6,6,16,0.8);"></canvas>
+          <!-- Locked Overlay -->
+          <div id="skinLockedOverlay" class="absolute inset-0 bg-black/70 rounded-lg flex flex-col items-center justify-center hidden pointer-events-none border border-red-500/30">
+            <svg class="w-6 h-6 text-red-400 mb-1 drop-shadow-[0_0_5px_rgba(255,0,0,0.8)]" viewBox="0 0 24 24"><path fill="currentColor" d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" /></svg>
+            <span id="skinLockedText" class="text-[9px] text-gray-300 font-display text-center px-4 leading-tight uppercase tracking-wider"></span>
+          </div>
+        </div>
+
+        <button id="carouselNext" class="absolute right-0 p-2 text-neon-cyan hover:scale-110 transition-transform cursor-pointer z-10">
+          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+        </button>
+      </div>
+      
+      <!-- Skin Name -->
+      <div class="flex flex-col items-center mb-5">
+        <div id="carouselSkinName" class="font-display text-sm text-neon-cyan uppercase tracking-widest font-bold drop-shadow-[0_0_5px_rgba(0,255,136,0.5)]">Clean</div>
       </div>
 
       <!-- Color Picker -->
@@ -303,11 +323,6 @@
         </div>
       </div>
 
-      <!-- Skins -->
-      <div class="mb-4">
-        <label class="block font-display text-[10px] text-gray-400 tracking-widest uppercase mb-1">Skins</label>
-        <div id="skinContainer" class="grid grid-cols-2 gap-2"></div>
-      </div>
 
       <!-- Glow Intensity -->
       <div>

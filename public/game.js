@@ -48,6 +48,7 @@
   let customColor = CAR_COLORS[0];
   let customStyle = 'sleek';
   let customSkin = 'none';
+  let currentPreviewSkin = 'none';
   let customGlow = 60;
 
   const EFFECT_LABELS = {
@@ -1002,41 +1003,76 @@
       });
     });
 
-    // Skins
-    const skinContainer = document.getElementById('skinContainer');
-    if (skinContainer) {
-      let skinHtml = '';
-      for (const [key, skin] of Object.entries(CAR_SKINS)) {
+    // Skins Carousel
+    const btnPrev = document.getElementById('carouselPrev');
+    const btnNext = document.getElementById('carouselNext');
+    const equipBtn = document.getElementById('equipSkinBtn');
+    
+    if (btnPrev && btnNext) {
+      // Find current skin index
+      const keys = Object.keys(CAR_SKINS);
+      let carouselIndex = keys.indexOf(customSkin);
+      if (carouselIndex === -1) carouselIndex = 0;
+
+      const updateCarousel = () => {
+        const key = keys[carouselIndex];
+        const skin = CAR_SKINS[key];
         const isUnlocked = unlockedSkins.includes(key);
-        const isSelected = key === customSkin;
         
-        if (isUnlocked) {
-          skinHtml += `
-            <button class="skin-btn p-2 rounded-lg text-[10px] font-display uppercase border transition-all cursor-pointer ${isSelected ? 'border-neon-cyan text-neon-cyan bg-neon-cyan/10 shadow-[0_0_10px_rgba(0,240,255,0.3)]' : 'border-white/10 text-gray-300 bg-white/5 hover:border-white/30'}" data-skin="${key}">
-              ${skin.label}
-            </button>
-          `;
+        // Update Title
+        document.getElementById('carouselSkinName').textContent = skin.label;
+        
+        // Update Locked Overlay
+        const overlay = document.getElementById('skinLockedOverlay');
+        const overlayText = document.getElementById('skinLockedText');
+        if (!isUnlocked) {
+          overlay.classList.remove('hidden');
+          overlayText.textContent = skin.desc;
         } else {
-          skinHtml += `
-            <button class="p-2 rounded-lg text-[9px] font-display border border-white/5 bg-black/40 text-gray-500 cursor-not-allowed flex flex-col items-center gap-1" disabled>
-              <div class="flex items-center gap-1 opacity-70">
-                <svg class="w-3 h-3" viewBox="0 0 24 24"><path fill="currentColor" d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" /></svg>
-                <span>${skin.label}</span>
-              </div>
-              <span class="text-[7px] text-gray-600">${skin.desc}</span>
-            </button>
-          `;
+          overlay.classList.add('hidden');
         }
-      }
-      skinContainer.innerHTML = skinHtml;
-      
-      skinContainer.addEventListener('click', (e) => {
-        const btn = e.target.closest('.skin-btn');
-        if (!btn) return;
-        customSkin = btn.dataset.skin;
-        initCustomizer(); // re-render to update selected state
+
+        // Update Equip Button
+        if (isUnlocked) {
+          equipBtn.classList.remove('hidden');
+          if (customSkin === key) {
+            equipBtn.textContent = 'EQUIPPED';
+            equipBtn.classList.add('bg-neon-cyan', 'text-black');
+          } else {
+            equipBtn.textContent = 'EQUIP';
+            equipBtn.classList.remove('bg-neon-cyan', 'text-black');
+          }
+        } else {
+          equipBtn.classList.add('hidden');
+        }
+        
+        // Render Preview
+        currentPreviewSkin = key;
         renderCarPreview();
-      });
+      };
+
+      btnPrev.onclick = () => {
+        carouselIndex = (carouselIndex - 1 + keys.length) % keys.length;
+        updateCarousel();
+      };
+
+      btnNext.onclick = () => {
+        carouselIndex = (carouselIndex + 1) % keys.length;
+        updateCarousel();
+      };
+      
+      if(equipBtn) {
+        equipBtn.onclick = () => {
+           const key = keys[carouselIndex];
+           if (unlockedSkins.includes(key)) {
+             customSkin = key;
+             updateCarousel();
+           }
+        };
+      }
+
+      // Initial render
+      updateCarousel();
     }
 
     // Glow slider
@@ -1079,7 +1115,7 @@
     const dims = getCarDims(customStyle);
     c.save();
     c.translate(cw / 2, ch / 2);
-    drawVehicleShape(c, dims.w * 2, dims.h * 2, customColor, customSkin, customGlow, false);
+    drawVehicleShape(c, dims.w * 2, dims.h * 2, customColor, currentPreviewSkin, customGlow, false);
     c.restore();
   }
 
