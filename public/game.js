@@ -523,7 +523,7 @@
 
   // ─── RENDER: VEHICLE ───────────────────────────────────────
   function drawVehicleShape(c, carW, carH, color, glowAmt, boosting) {
-    const glowIntensity = (glowAmt / 100) * 20 + 5;
+    const glowIntensity = (glowAmt / 100) * 50 + 10;
     c.shadowColor = color;
     c.shadowBlur = boosting ? glowIntensity * 2.5 : glowIntensity;
     c.fillStyle = hexToRgba(color, boosting ? 0.3 : 0.15);
@@ -825,11 +825,11 @@
       const isLocal = entry.id === localId;
       const rankIcon = i === 0 ? '1ST' : (i + 1).toString();
       html += `<div class="flex items-center justify-between py-1 px-1 rounded ${isLocal ? 'bg-white/5' : ''}">
-                 <div class="flex items-center gap-2">
-                   <span class="text-xs w-5 text-center">${rankIcon}</span>
-                   <span class="font-body text-xs ${isLocal ? 'text-neon-cyan font-semibold' : 'text-gray-300'} truncate max-w-[90px]">${entry.name}</span>
+                 <div class="flex items-center gap-1 sm:gap-2">
+                   <span class="text-[9px] sm:text-xs w-4 sm:w-5 text-center">${rankIcon}</span>
+                   <span class="font-body text-[10px] sm:text-xs ${isLocal ? 'text-neon-cyan font-semibold' : 'text-gray-300'} truncate max-w-[50px] sm:max-w-[90px]">${entry.name}</span>
                  </div>
-                 <span class="font-display text-xs font-bold ${isLocal ? 'text-neon-cyan' : 'text-gray-400'}">${entry.score} pts | ${formatTime(entry.time)}</span>
+                 <span class="font-display text-[9px] sm:text-xs font-bold ${isLocal ? 'text-neon-cyan' : 'text-gray-400'}">${entry.score} pts | ${formatTime(entry.time)}</span>
                </div>`;
     }
     leaderboardList.innerHTML = html;
