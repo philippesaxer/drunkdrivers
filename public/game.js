@@ -19,8 +19,7 @@
   const CAR_COLORS = [
     '#00f0ff', '#ff00e5', '#00ff88', '#ff8c00',
     '#ff0066', '#8b5cf6', '#ffd700', '#00aaff',
-    '#ff4466', '#44ff88', '#ff44ff', '#ff6644',
-    '#4488ff', '#ff4488', '#ffffff', '#ff2222'
+    '#44ff88', '#ff44ff', '#ffffff', '#ff2222'
   ];
   const CAR_STYLES = {
     sleek:   { w: 62, h: 34, label: 'Sleek' },
@@ -523,7 +522,7 @@
 
   // ─── RENDER: VEHICLE ───────────────────────────────────────
   function drawVehicleShape(c, carW, carH, color, glowAmt, boosting) {
-    const glowIntensity = (glowAmt / 100) * 50 + 10;
+    const glowIntensity = (glowAmt / 100) * 120 + 20;
     c.shadowColor = color;
     c.shadowBlur = boosting ? glowIntensity * 2.5 : glowIntensity;
     c.fillStyle = hexToRgba(color, boosting ? 0.3 : 0.15);

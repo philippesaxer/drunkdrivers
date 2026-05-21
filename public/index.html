@@ -275,31 +275,31 @@
     </div>
 
     <!-- ═══════════ CAR CUSTOMIZATION PANEL ═══════════ -->
-    <div id="customizePanel" class="glass rounded-2xl p-6 sm:p-8 w-full max-w-md mx-4 my-4 hidden max-h-[85vh] overflow-y-auto" style="animation: floatIn 0.4s ease-out;">
+    <div id="customizePanel" class="glass rounded-2xl p-5 sm:p-6 w-full max-w-md mx-4 my-4 hidden" style="animation: floatIn 0.4s ease-out;">
 
-      <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center justify-between mb-4">
         <h2 class="font-display text-lg font-bold tracking-wider text-neon-cyan">Customize</h2>
         <button id="customizeBack" class="font-display text-xs text-gray-400 hover:text-white transition-colors cursor-pointer">← Back</button>
       </div>
 
       <!-- Car Preview -->
-      <div class="mb-5">
-        <canvas id="carPreview" width="200" height="120" class="rounded-lg" style="background: rgba(6,6,16,0.8);"></canvas>
+      <div class="mb-4">
+        <canvas id="carPreview" width="200" height="90" class="rounded-lg mx-auto" style="background: rgba(6,6,16,0.8);"></canvas>
       </div>
 
       <!-- Color Picker -->
-      <div class="mb-5">
-        <label class="block font-display text-[10px] text-gray-400 tracking-widest uppercase mb-2">Body Color</label>
-        <div id="colorSwatches" class="flex flex-wrap gap-3 justify-center p-4"></div>
+      <div class="mb-4">
+        <label class="block font-display text-[10px] text-gray-400 tracking-widest uppercase mb-1">Body Color</label>
+        <div id="colorSwatches" class="flex flex-wrap gap-2 sm:gap-3 justify-center p-2"></div>
       </div>
 
       <!-- Car Style -->
-      <div class="mb-5">
-        <label class="block font-display text-[10px] text-gray-400 tracking-widest uppercase mb-2">Body Style</label>
+      <div class="mb-4">
+        <label class="block font-display text-[10px] text-gray-400 tracking-widest uppercase mb-1">Body Style</label>
         <div class="flex gap-2 justify-center">
-          <button class="car-style-btn px-4 py-2 rounded-lg font-display text-[10px] tracking-wider cursor-pointer bg-white/5 border border-white/10 text-gray-300 hover:border-neon-cyan/40 transition-all selected" data-style="sleek">Sleek</button>
-          <button class="car-style-btn px-4 py-2 rounded-lg font-display text-[10px] tracking-wider cursor-pointer bg-white/5 border border-white/10 text-gray-300 hover:border-neon-cyan/40 transition-all" data-style="muscle">Muscle</button>
-          <button class="car-style-btn px-4 py-2 rounded-lg font-display text-[10px] tracking-wider cursor-pointer bg-white/5 border border-white/10 text-gray-300 hover:border-neon-cyan/40 transition-all" data-style="compact">Compact</button>
+          <button class="car-style-btn px-4 py-1.5 rounded-lg font-display text-[10px] tracking-wider cursor-pointer bg-white/5 border border-white/10 text-gray-300 hover:border-neon-cyan/40 transition-all selected" data-style="sleek">Sleek</button>
+          <button class="car-style-btn px-4 py-1.5 rounded-lg font-display text-[10px] tracking-wider cursor-pointer bg-white/5 border border-white/10 text-gray-300 hover:border-neon-cyan/40 transition-all" data-style="muscle">Muscle</button>
+          <button class="car-style-btn px-4 py-1.5 rounded-lg font-display text-[10px] tracking-wider cursor-pointer bg-white/5 border border-white/10 text-gray-300 hover:border-neon-cyan/40 transition-all" data-style="compact">Compact</button>
         </div>
       </div>
 
