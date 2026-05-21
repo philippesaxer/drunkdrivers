@@ -223,7 +223,7 @@ function createPlayer(id, name, customColor, customStyle, customGlow) {
     color: color,
     style: customStyle || 'sleek',
     glow: customGlow !== undefined ? customGlow : 60,
-    input: { up: false, down: false, left: false, right: false, boost: false },
+    input: { targetAngle: null, moving: false, boost: false },
     effects: [],
     stickyLocked: false,
     stickyDirection: null,
@@ -394,24 +394,19 @@ function updateItemRespawns() {
 function processInput(p) {
   const input = { ...p.input };
 
-  // Steering Invert
-  if (hasEffect(p, 'STEERING_INVERT')) {
-    const tmp = input.left;
-    input.left = input.right;
-    input.right = tmp;
+  // Steering Invert (Mirror the target angle)
+  if (hasEffect(p, 'STEERING_INVERT') && input.targetAngle !== null) {
+    input.targetAngle = input.targetAngle + Math.PI;
   }
 
   // Reverse Gear
-  if (hasEffect(p, 'REVERSE_GEAR')) {
-    const tmp = input.up;
-    input.up = input.down;
-    input.down = tmp;
+  if (hasEffect(p, 'REVERSE_GEAR') && input.targetAngle !== null) {
+    input.targetAngle = input.targetAngle + Math.PI;
   }
 
   // Stuck Throttle
   if (hasEffect(p, 'STUCK_THROTTLE')) {
-    input.up = true;
-    input.down = false;
+    input.moving = true;
   }
 
   // Micro-Sleep
@@ -420,29 +415,21 @@ function processInput(p) {
     const elapsed = currentTick - e.startTick;
     const cyclePos = elapsed % MICROSLEEP_CYCLE;
     if (cyclePos >= MICROSLEEP_CYCLE - MICROSLEEP_FREEZE) {
-      input.up = false;
-      input.down = false;
-      input.left = false;
-      input.right = false;
+      input.moving = false;
     }
   }
 
   // Sticky Wheel
   if (hasEffect(p, 'STICKY_WHEEL')) {
-    if (!p.stickyLocked) {
-      if (input.left || input.right) {
-        p.stickyDirection = input.left ? 'left' : 'right';
-        p.stickyLocked = true;
-        p.stickyTimer = STICKY_LOCK_TICKS;
-      }
+    if (!p.stickyLocked && input.targetAngle !== null) {
+      p.stickyDirection = input.targetAngle + (Math.random() > 0.5 ? 0.5 : -0.5);
+      p.stickyLocked = true;
+      p.stickyTimer = STICKY_LOCK_TICKS;
     }
     if (p.stickyLocked) {
-      input.left = p.stickyDirection === 'left';
-      input.right = p.stickyDirection === 'right';
+      input.targetAngle = p.stickyDirection;
       p.stickyTimer--;
-      if (p.stickyTimer <= 0) {
-        p.stickyLocked = false;
-      }
+      if (p.stickyTimer <= 0) p.stickyLocked = false;
     }
   }
 
@@ -485,9 +472,18 @@ function updatePlayerPhysics(p) {
   const input = processInput(p);
   const turnRate = BASE_TURN * p.handling;
 
-  // Steering
-  if (input.left) p.angle -= turnRate;
-  if (input.right) p.angle += turnRate;
+  // Steering (Rotate towards target angle)
+  if (input.targetAngle !== null) {
+    let diff = input.targetAngle - p.angle;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    
+    if (Math.abs(diff) < turnRate) {
+      p.angle = input.targetAngle;
+    } else {
+      p.angle += Math.sign(diff) * turnRate;
+    }
+  }
 
   // Normalize angle
   while (p.angle < 0) p.angle += Math.PI * 2;
@@ -501,13 +497,9 @@ function updatePlayerPhysics(p) {
 
   // Throttle with boost multiplier
   const accel = p.boostActive ? BASE_ACCEL * BOOST_ACCEL_MULT : BASE_ACCEL;
-  if (input.up) {
+  if (input.moving) {
     p.vx += fx * accel;
     p.vy += fy * accel;
-  }
-  if (input.down && !p.boostActive) {
-    p.vx -= fx * (BASE_ACCEL * 0.5);
-    p.vy -= fy * (BASE_ACCEL * 0.5);
   }
 
   // Decompose velocity into forward and lateral
@@ -778,10 +770,8 @@ io.on('connection', (socket) => {
   socket.on('input', (data) => {
     const p = players.get(socket.id);
     if (!p || !p.alive) return;
-    p.input.up = !!data.up;
-    p.input.down = !!data.down;
-    p.input.left = !!data.left;
-    p.input.right = !!data.right;
+    p.input.targetAngle = typeof data.targetAngle === 'number' ? data.targetAngle : null;
+    p.input.moving = !!data.moving;
     p.input.boost = !!data.boost;
   });
 

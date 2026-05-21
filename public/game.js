@@ -1033,20 +1033,11 @@
       });
 
       joystick.on('move', (evt, data) => {
-        touchKeys.up = false; touchKeys.down = false;
-        touchKeys.left = false; touchKeys.right = false;
-        const angle = data.angle.degree;
-        const force = data.force;
-        if (force > 0.2) {
-          if (angle > 45 && angle < 135) touchKeys.up = true;
-          else if (angle > 225 && angle < 315) touchKeys.down = true;
-          if (angle > 135 && angle < 225) touchKeys.left = true;
-          else if (angle < 45 || angle > 315) touchKeys.right = true;
-        }
+        touchKeys.moving = data.force > 0.15;
+        touchKeys.targetAngle = -data.angle.radian;
       });
       joystick.on('end', () => {
-        touchKeys.up = false; touchKeys.down = false;
-        touchKeys.left = false; touchKeys.right = false;
+        touchKeys.moving = false;
       });
     }
 
@@ -1066,11 +1057,27 @@
     if (now - lastInputSend < (1000 / tickRate) * 0.8) return;
     lastInputSend = now;
 
+    let targetAngle = null;
+    let moving = false;
+
+    if (isMobile && touchKeys.moving) {
+      moving = true;
+      targetAngle = touchKeys.targetAngle;
+    } else {
+      let dx = 0; let dy = 0;
+      if (keys['KeyW'] || keys['ArrowUp']) dy -= 1;
+      if (keys['KeyS'] || keys['ArrowDown']) dy += 1;
+      if (keys['KeyA'] || keys['ArrowLeft']) dx -= 1;
+      if (keys['KeyD'] || keys['ArrowRight']) dx += 1;
+      if (dx !== 0 || dy !== 0) {
+        moving = true;
+        targetAngle = Math.atan2(dy, dx);
+      }
+    }
+
     socket.emit('input', {
-      up: !!(keys['KeyW'] || keys['ArrowUp'] || touchKeys.up),
-      down: !!(keys['KeyS'] || keys['ArrowDown'] || touchKeys.down),
-      left: !!(keys['KeyA'] || keys['ArrowLeft'] || touchKeys.left),
-      right: !!(keys['KeyD'] || keys['ArrowRight'] || touchKeys.right),
+      targetAngle: targetAngle,
+      moving: moving,
       boost: !!(keys['Space'] || touchKeys.boost)
     });
   }
