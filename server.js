@@ -663,12 +663,6 @@ function getLeaderboard(room) {
     }));
 }
 
-function getEffectSerialData(room, p) {
-  return p.effects.map(e => ({
-    type: e.type,
-    remaining: Math.max(0, (EFFECT_DURATION_TICKS - (room.currentTick - e.startTick)) / TICK_RATE)
-  }));
-}
 
 // ═══════════════════════════════════════════════════════════════
 //  MAIN GAME LOOP (PER ROOM)

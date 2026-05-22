@@ -1156,18 +1156,18 @@
     }
     colorSwatches.innerHTML = html;
 
-    colorSwatches.addEventListener('click', (e) => {
+    colorSwatches.onclick = (e) => {
       const swatch = e.target.closest('.color-swatch');
       if (!swatch) return;
       customColor = swatch.dataset.color;
       colorSwatches.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
       swatch.classList.add('selected');
       renderCarPreview();
-    });
+    };
 
     // Style buttons
     document.querySelectorAll('.car-style-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.onclick = () => {
         customStyle = btn.dataset.style;
         document.querySelectorAll('.car-style-btn').forEach(b => {
           b.classList.remove('selected');
@@ -1178,7 +1178,7 @@
         btn.style.borderColor = 'rgba(0,240,255,0.5)';
         btn.style.color = '#00f0ff';
         renderCarPreview();
-      });
+      };
     });
 
     // Skins Carousel
@@ -1296,21 +1296,21 @@
     }
 
     // Glow slider
-    glowSlider.addEventListener('input', () => {
+    glowSlider.oninput = () => {
       customGlow = parseInt(glowSlider.value);
       renderCarPreview();
-    });
+    };
 
     // Panel toggle
-    customizeBtn.addEventListener('click', () => {
+    customizeBtn.onclick = () => {
       menuCard.classList.add('hidden');
       customizePanel.classList.remove('hidden');
       renderCarPreview();
-    });
-    customizeBack.addEventListener('click', () => {
+    };
+    customizeBack.onclick = () => {
       customizePanel.classList.add('hidden');
       menuCard.classList.remove('hidden');
-    });
+    };
 
     // Set initial style button
     document.querySelector('.car-style-btn.selected').style.borderColor = 'rgba(0,240,255,0.5)';
