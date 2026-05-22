@@ -587,6 +587,20 @@ function checkPlayerCollisions(room) {
 
         if (dvn <= 0) continue;
 
+        // Calculate approach speeds BEFORE applying impulse!
+        const p1SpeedTowardsP2 = p1.vx * nx + p1.vy * ny;
+        const p2SpeedTowardsP1 = p2.vx * (-nx) + p2.vy * (-ny);
+
+        let dmg2 = 0;
+        if (p1SpeedTowardsP2 > 0.5) {
+          dmg2 = p1SpeedTowardsP2 * p1.impactMultiplier * 2.5;
+        }
+
+        let dmg1 = 0;
+        if (p2SpeedTowardsP1 > 0.5) {
+          dmg1 = p2SpeedTowardsP1 * p2.impactMultiplier * 2.5;
+        }
+
         const restitution = 0.75;
         const impulse = -(1 + restitution) * dvn / (1 / p1.mass + 1 / p2.mass);
 
@@ -601,19 +615,6 @@ function checkPlayerCollisions(room) {
         p1.y -= ny * overlap * (p2.mass / totalMass);
         p2.x += nx * overlap * (p1.mass / totalMass);
         p2.y += ny * overlap * (p1.mass / totalMass);
-
-        const p1SpeedTowardsP2 = p1.vx * nx + p1.vy * ny;
-        const p2SpeedTowardsP1 = p2.vx * (-nx) + p2.vy * (-ny);
-
-        let dmg2 = 0;
-        if (p1SpeedTowardsP2 > 0.5) {
-          dmg2 = p1SpeedTowardsP2 * 3.0 * p1.impactMultiplier * 0.15;
-        }
-
-        let dmg1 = 0;
-        if (p2SpeedTowardsP1 > 0.5) {
-          dmg1 = p2SpeedTowardsP1 * 3.0 * p2.impactMultiplier * 0.15;
-        }
 
         p1.hp -= dmg1;
         p2.hp -= dmg2;

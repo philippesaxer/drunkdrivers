@@ -1042,17 +1042,12 @@
 
   function showSkinUnlockPopup(skins, data) {
     if (skins.length === 0) {
-      if (deathTimerInterval) { clearInterval(deathTimerInterval); deathTimerInterval = null; }
-      document.getElementById('deathScreen').classList.add('hidden');
-      document.getElementById('menuOverlay').classList.remove('hidden');
-      document.getElementById('menuCard').classList.remove('hidden');
-      playing = false;
-      document.getElementById('gameHUD').classList.add('hidden');
+      const p = getLocalServerPlayer();
+      if (!p || !p.alive) {
+        finalizeDeathScreenUI(data);
+      }
       return;
     }
-    
-    // Send leave so server doesn't auto-respawn us while we look at the popup
-    socket.emit('leave');
     if (deathTimerInterval) { clearInterval(deathTimerInterval); deathTimerInterval = null; }
 
     const skinKey = skins[0];
