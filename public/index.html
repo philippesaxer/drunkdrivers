@@ -388,13 +388,7 @@
       <div id="effectBadges" class="flex flex-wrap justify-start gap-1.5 mt-1.5"></div>
     </div>
 
-    <!-- Room Code Display (Top Center) -->
-    <div class="absolute top-5 left-1/2 -translate-x-1/2 hidden sm:block">
-      <div class="glass-subtle rounded-xl px-4 py-1.5 text-center">
-        <span class="font-display text-[8px] sm:text-[9px] text-gray-400 tracking-widest uppercase">Room</span>
-        <div id="hudRoomCode" class="font-display text-xs sm:text-sm font-bold text-neon-magenta tracking-widest uppercase">----</div>
-      </div>
-    </div>
+
 
     <!-- Leaderboard (Top Right) -->
     <div class="absolute top-5 right-2 sm:top-6 sm:right-4 w-32 sm:w-44 md:w-52">
@@ -412,8 +406,9 @@
       </div>
     </div>
 
-    <!-- HP Bar (Bottom Left above minimap) -->
-    <div class="absolute bottom-[180px] sm:bottom-44 left-3 sm:left-4 w-32 sm:w-40">
+    <!-- Player Stats (Bottom Left above minimap) -->
+    <div class="absolute bottom-[140px] sm:bottom-36 left-3 sm:left-4 w-32 sm:w-40 flex flex-col gap-2">
+      <!-- HP Bar -->
       <div class="glass-subtle rounded-lg px-2 sm:px-3 py-1.5 sm:py-2">
         <div class="flex items-center justify-between mb-1">
           <span class="font-display text-[8px] sm:text-[9px] text-gray-400 tracking-widest uppercase">Hull</span>
@@ -423,10 +418,8 @@
           <div id="hpBarFill" class="h-full rounded-full transition-all duration-200" style="width: 100%; background: #00ff88;"></div>
         </div>
       </div>
-    </div>
 
-    <!-- Boost Bar (Bottom Left, below HP) -->
-    <div class="absolute bottom-[140px] sm:bottom-36 left-3 sm:left-4 w-32 sm:w-40">
+      <!-- Boost Bar -->
       <div class="glass-subtle rounded-lg px-2 sm:px-3 py-1.5 sm:py-2">
         <div class="flex items-center justify-between mb-1">
           <span class="font-display text-[8px] sm:text-[9px] text-gray-400 tracking-widest uppercase">Boost</span>
@@ -435,6 +428,14 @@
         <div class="w-full h-1.5 sm:h-2 bg-black/60 rounded-full overflow-hidden border border-white/5">
           <div id="boostBarFill" class="h-full rounded-full transition-all duration-150" style="width: 100%; background: #00f0ff;"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- Room Code Display (Bottom Right) -->
+    <div class="absolute bottom-[140px] sm:bottom-36 right-3 sm:right-4 w-32 sm:w-40">
+      <div class="glass-subtle rounded-lg px-4 py-1.5 sm:py-2 text-center">
+        <span class="font-display text-[8px] sm:text-[9px] text-gray-400 tracking-widest uppercase">Room</span>
+        <div id="hudRoomCode" class="font-display text-xs sm:text-sm font-bold text-neon-magenta tracking-widest uppercase">----</div>
       </div>
     </div>
 
