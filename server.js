@@ -640,21 +640,21 @@ function checkPlayerCollisions(room) {
 
         const cx = (p1.x + p2.x) / 2;
         const cy = (p1.y + p2.y) / 2;
-        collisionsThisTick.push({ x: cx, y: cy });
+        room.collisionsThisTick.push({ x: cx, y: cy });
 
-        if (p1.hp <= 0) killPlayer(p1, 'collision');
-        if (p2.hp <= 0) killPlayer(p2, 'collision');
+        if (p1.hp <= 0) killPlayer(room, p1, 'collision');
+        if (p2.hp <= 0) killPlayer(room, p2, 'collision');
       }
     }
   }
 }
 
-function checkItemPickups() {
-  for (const p of players.values()) {
+function checkItemPickups(room) {
+  for (const p of room.players.values()) {
     if (!p.alive) continue;
-    for (const [id, item] of items) {
+    for (const [id, item] of room.items) {
       if (circleCircle(p.x, p.y, PLAYER_RADIUS, item.x, item.y, ITEM_RADIUS)) {
-        pickupItem(p, item);
+        pickupItem(room, p, item);
         break;
       }
     }
