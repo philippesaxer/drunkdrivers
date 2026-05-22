@@ -619,9 +619,9 @@ function checkPlayerCollisions(room) {
         p2.hp -= dmg2;
 
         p1.lastHitBy = p2.id;
-        p1.lastHitTick = currentTick;
+        p1.lastHitTick = room.currentTick;
         p2.lastHitBy = p1.id;
-        p2.lastHitTick = currentTick;
+        p2.lastHitTick = room.currentTick;
 
         const cx = (p1.x + p2.x) / 2;
         const cy = (p1.y + p2.y) / 2;
