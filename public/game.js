@@ -1335,9 +1335,27 @@
   }
 
   // ─── NETWORKING ─────────────────────────────────────────────
+  function resolveAutoRegion() {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (!tz) return 'eu';
+      if (tz.startsWith('America/')) {
+        if (tz.includes('Los_Angeles') || tz.includes('Vancouver') || tz.includes('Phoenix') || tz.includes('Denver')) return 'usw';
+        if (tz.includes('Chicago') || tz.includes('Winnipeg') || tz.includes('Mexico_City')) return 'usn';
+        return 'use'; 
+      } else if (tz.startsWith('Asia/') || tz.startsWith('Australia/') || tz.startsWith('Pacific/')) {
+        return 'as';
+      }
+    } catch(e) {}
+    return 'eu';
+  }
+
   function connectSocket() {
     const regionSelect = document.getElementById('regionSelect');
-    const region = regionSelect ? regionSelect.value : 'eu';
+    let region = regionSelect ? regionSelect.value : 'auto';
+    if (region === 'auto') {
+      region = resolveAutoRegion();
+    }
     let url = '';
     if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
       url = `https://drunkdrivers-${region}.onrender.com`;
@@ -1531,7 +1549,7 @@
 
     const regionSelect = document.getElementById('regionSelect');
     if (regionSelect) {
-      const savedRegion = localStorage.getItem('dd_region') || 'eu';
+      const savedRegion = localStorage.getItem('dd_region') || 'auto';
       regionSelect.value = savedRegion;
       regionSelect.addEventListener('change', () => {
         localStorage.setItem('dd_region', regionSelect.value);
