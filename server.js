@@ -821,6 +821,10 @@ io.on('connection', (socket) => {
     });
   });
 
+  socket.on('leave', () => {
+    players.delete(socket.id);
+  });
+
   socket.on('input', (data) => {
     const p = players.get(socket.id);
     if (!p || !p.alive) return;

@@ -985,26 +985,62 @@
       if (skinKey !== 'none' && !unlockedSkins.includes(skinKey)) {
         if (skinData.condition(localStats)) {
           unlockedSkins.push(skinKey);
-          newlyUnlocked.push(skinData.label);
+          newlyUnlocked.push(skinKey);
         }
       }
     }
     if (newlyUnlocked.length > 0) {
       saveStats();
-      // Show unlock message on death screen
-      const msg = document.createElement('div');
-      msg.className = 'absolute top-1/4 left-1/2 -translate-x-1/2 text-center z-50 pointer-events-none';
-      msg.style.animation = 'floatIn 0.5s ease-out, pulseText 2s infinite';
-      msg.innerHTML = `
-        <div class="font-display text-3xl md:text-5xl font-bold text-neon-magenta uppercase tracking-widest drop-shadow-[0_0_20px_rgba(255,0,229,1)]">UNLOCKED!</div>
-        <div class="font-body text-xl md:text-2xl text-white mt-2">${newlyUnlocked.join(', ')} Skin</div>
-      `;
-      deathScreen.appendChild(msg);
-      setTimeout(() => msg.remove(), 6000);
-      
-      // Update the customize panel to reflect the new unlocks
       initCustomizer();
     }
+    return newlyUnlocked;
+  }
+
+  function showSkinUnlockPopup(skins, data) {
+    if (skins.length === 0) {
+      finalizeDeathScreenUI(data);
+      return;
+    }
+    
+    // Send leave so server doesn't auto-respawn us while we look at the popup
+    socket.emit('leave');
+    if (deathTimerInterval) { clearInterval(deathTimerInterval); deathTimerInterval = null; }
+
+    const skinKey = skins[0];
+    const skinInfo = CAR_SKINS[skinKey];
+    
+    document.getElementById('unlockSkinName').textContent = skinInfo.label;
+    
+    const popup = document.getElementById('skinUnlockPopup');
+    const btnClose = document.getElementById('unlockCloseBtn');
+    const btnEquip = document.getElementById('unlockEquipBtn');
+    
+    const canvas = document.getElementById('unlockCarPreview');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const dims = getCarDims(customStyle);
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    drawVehicleShape(ctx, dims.w * 2, dims.h * 2, customColor, skinKey, customGlow, false);
+    ctx.restore();
+    
+    popup.classList.remove('hidden');
+    
+    const cleanup = () => {
+      popup.classList.add('hidden');
+      btnClose.removeEventListener('click', onClose);
+      btnEquip.removeEventListener('click', onEquip);
+      showSkinUnlockPopup(skins.slice(1), data);
+    };
+    
+    const onClose = () => cleanup();
+    const onEquip = () => {
+      customSkin = skinKey;
+      cleanup();
+    };
+    
+    btnClose.addEventListener('click', onClose);
+    btnEquip.addEventListener('click', onEquip);
   }
 
   function showDeathScreenUI(data) {
@@ -1019,11 +1055,18 @@
       saveStats();
     }
     
-    evaluateSkinUnlocks();
-    
+    const newSkins = evaluateSkinUnlocks();
+    if (newSkins.length > 0) {
+      showSkinUnlockPopup(newSkins, data);
+    } else {
+      finalizeDeathScreenUI(data);
+    }
+  }
+
+  function finalizeDeathScreenUI(data) {
     const dScore = document.getElementById('deathScore');
     const dHigh = document.getElementById('deathHighscore');
-    if (dScore) dScore.textContent = currentScore;
+    if (dScore) dScore.textContent = data.finalScore || 0;
     if (dHigh) dHigh.textContent = localStats.highScore;
     
     deathScreen.classList.remove('hidden');
@@ -1033,13 +1076,20 @@
       const msgs = ['You crashed!', 'Total wipeout!', 'Too drunk to drive!', 'RIP your car!'];
       deathKiller.textContent = msgs[Math.floor(Math.random() * msgs.length)];
     }
+    
+    // Only start timer if we are still connected to the game
+    // If the player left during a popup, respawnTime won't matter, they just click X
     let t = Math.ceil(data.respawnTime || 3);
     deathTimer.textContent = t;
     if (deathTimerInterval) clearInterval(deathTimerInterval);
     deathTimerInterval = setInterval(() => {
       t--;
-      deathTimer.textContent = Math.max(0, t);
-      if (t <= 0) clearInterval(deathTimerInterval);
+      if (t > 0) {
+        deathTimer.textContent = t;
+      } else {
+        clearInterval(deathTimerInterval);
+        deathTimerInterval = null;
+      }
     }, 1000);
   }
 
@@ -1378,6 +1428,22 @@
       if (e.key === 'Enter') join();
     });
     nicknameInput.focus();
+
+    const deathCloseBtn = document.getElementById('deathCloseBtn');
+    if (deathCloseBtn) {
+      deathCloseBtn.addEventListener('click', () => {
+        socket.emit('leave');
+        if (deathTimerInterval) {
+          clearInterval(deathTimerInterval);
+          deathTimerInterval = null;
+        }
+        deathScreen.classList.add('hidden');
+        menuOverlay.classList.remove('hidden');
+        menuCard.classList.remove('hidden');
+        playing = false;
+        gameHUD.classList.add('hidden');
+      });
+    }
   }
 
   // ─── MAIN RENDER LOOP ──────────────────────────────────────
