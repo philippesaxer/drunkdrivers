@@ -1336,7 +1336,7 @@
 
   // ─── NETWORKING ─────────────────────────────────────────────
   function connectSocket() {
-    socket = io('https://drunkdrivers.onrender.com');
+    socket = io('https://drunkdrivers-eu.onrender.com');
 
     socket.on('connect', () => {
       connected = true;
@@ -1354,21 +1354,35 @@
 
     socket.on('welcome', (data) => {
       localId = data.id;
+      const hudRoomCode = document.getElementById('hudRoomCode');
+      if (hudRoomCode) hudRoomCode.textContent = data.roomId || '----';
       worldData = data.world;
       pillars = data.pillars;
       pits = data.pits;
       borderMargin = data.borderMargin;
       tickRate = data.tickRate;
+      serverItems = data.items || [];
       playing = true;
       menuOverlay.classList.add('hidden');
       gameHUD.classList.remove('hidden');
       hideDeathScreenUI();
-      console.log('[Game] Joined as', localId);
+      console.log('[Game] Joined as', localId, 'in room', data.roomId);
+    });
+
+    socket.on('itemSpawn', (item) => {
+      serverItems.push(item);
+    });
+
+    socket.on('itemPickup', (itemId) => {
+      serverItems = serverItems.filter(i => i.id !== itemId);
+    });
+
+    socket.on('joinError', (data) => {
+      alert(data.message || 'Error joining room.');
     });
 
     socket.on('state', (data) => {
       serverPlayers = data.players;
-      serverItems = data.items;
       if (data.collisions) {
         for (const c of data.collisions) spawnCollisionSparks(c.x, c.y);
       }
@@ -1503,11 +1517,13 @@
 
   // ─── MENU ───────────────────────────────────────────────────
   function setupMenu() {
+    const roomCodeInput = document.getElementById('roomCodeInput');
     const join = () => {
       if (!connected) return;
       const name = nicknameInput.value.trim() || 'Driver';
-      console.log('Sending join with:', name, customColor, customStyle, customSkin, customGlow);
-      socket.emit('join', { name, color: customColor, style: customStyle, skin: customSkin, glow: customGlow });
+      const roomCode = roomCodeInput ? roomCodeInput.value.trim().toUpperCase() : '';
+      console.log('Sending join with:', name, roomCode);
+      socket.emit('join', { name, color: customColor, style: customStyle, skin: customSkin, glow: customGlow, roomCode });
     };
     playBtn.addEventListener('click', join);
     nicknameInput.addEventListener('keydown', (e) => {
@@ -1591,10 +1607,10 @@
 
   // ─── INITIALIZATION ─────────────────────────────────────────
   function init() {
+    setupMenu();
     connectSocket();
     setupInput();
     setupTouchControls();
-    setupMenu();
     initCustomizer();
     requestAnimationFrame(gameLoop);
     console.log('Drunk Drivers.io — Client initialized');
