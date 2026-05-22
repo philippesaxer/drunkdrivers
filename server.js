@@ -716,10 +716,6 @@ function gameTick(room) {
 
   for (const p of room.players.values()) {
     if (!p.alive) {
-      p.respawnTimer--;
-      if (p.respawnTimer <= 0) {
-        respawnPlayer(room, p);
-      }
       continue;
     }
     processEffects(room, p);
@@ -832,6 +828,16 @@ io.on('connection', (socket) => {
     p.spawnTick = p.savedSpawnTick || room.currentTick;
     
     respawnPlayer(room, p, true);
+  });
+
+  socket.on('request_respawn', () => {
+    if (!socket.roomId) return;
+    const room = activeRooms.get(socket.roomId);
+    if (!room) return;
+    const p = room.players.get(socket.id);
+    if (!p || p.alive) return;
+    
+    respawnPlayer(room, p);
   });
 
   socket.on('input', (data) => {

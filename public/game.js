@@ -1145,6 +1145,7 @@
       } else {
         clearInterval(deathTimerInterval);
         deathTimerInterval = null;
+        if (socket && connected) socket.emit('request_respawn');
       }
     }, 1000);
   }
