@@ -115,16 +115,54 @@ const PITS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
-//  GAME STATE
+//  GAME STATE (MULTI-ROOM)
 // ═══════════════════════════════════════════════════════════════
 
-const players = new Map();
-const items = new Map();
-let itemIdCounter = 0;
-let colorIndex = 0;
-let currentTick = 0;
-const pendingItemRespawns = [];
-const collisionsThisTick = [];
+const MAX_PLAYERS_PER_ROOM = 50;
+const activeRooms = new Map();
+let roomCounter = 1;
+
+class Room {
+  constructor(id) {
+    this.id = id;
+    this.players = new Map();
+    this.items = new Map();
+    this.itemIdCounter = 0;
+    this.colorIndex = 0;
+    this.currentTick = 0;
+    this.pendingItemRespawns = [];
+    this.collisionsThisTick = [];
+    
+    for (let i = 0; i < MAX_ITEMS; i++) {
+      this.spawnItem();
+    }
+  }
+
+  nextColor() {
+    const c = NEON_COLORS[this.colorIndex % NEON_COLORS.length];
+    this.colorIndex++;
+    return c;
+  }
+
+  spawnItem() {
+    const pos = randomSafePosition(ITEM_RADIUS);
+    const type = Math.random() < DRINK_SPAWN_CHANCE ? 'drink' : 'food';
+    const effectType = type === 'drink' ? EFFECT_TYPES[Math.floor(Math.random() * EFFECT_TYPES.length)] : null;
+    const id = ++this.itemIdCounter;
+    this.items.set(id, { id, x: pos.x, y: pos.y, type, effect: effectType });
+    return id;
+  }
+}
+
+function getAvailableRoom() {
+  for (const room of activeRooms.values()) {
+    if (room.players.size < MAX_PLAYERS_PER_ROOM) return room;
+  }
+  const newRoom = new Room('room-' + roomCounter++);
+  activeRooms.set(newRoom.id, newRoom);
+  console.log(`[+] Created new room: ${newRoom.id}`);
+  return newRoom;
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  UTILITY FUNCTIONS
@@ -173,12 +211,6 @@ function randomSafePosition(radius) {
   return { x: WORLD_W / 2 + (Math.random() - 0.5) * 200, y: WORLD_H / 2 + (Math.random() - 0.5) * 200 };
 }
 
-function nextColor() {
-  const c = NEON_COLORS[colorIndex % NEON_COLORS.length];
-  colorIndex++;
-  return c;
-}
-
 // ═══════════════════════════════════════════════════════════════
 //  PROMILLE SCALING
 // ═══════════════════════════════════════════════════════════════
@@ -196,140 +228,74 @@ function recalcStats(p) {
 //  PLAYER MANAGEMENT
 // ═══════════════════════════════════════════════════════════════
 
-function createPlayer(id, name, customColor, customStyle, customSkin, customGlow) {
+function createPlayer(room, id, name, customColor, customStyle, customSkin, customGlow) {
   const pos = randomSafePosition(PLAYER_RADIUS);
-  let color = nextColor();
+  let color = room.nextColor();
   if (customColor && typeof customColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(customColor)) {
     color = customColor;
   }
   const p = {
-    id,
+    id, roomId: room.id,
     name: name.substring(0, 16) || 'Driver',
-    x: pos.x,
-    y: pos.y,
-    angle: Math.random() * Math.PI * 2,
-    vx: 0,
-    vy: 0,
-    promille: 0,
-    hp: 100,
-    score: 0,
-    mass: 1.0,
-    topSpeed: BASE_TOP_SPEED,
-    impactMultiplier: 1.0,
-    handling: 1.0,
-    lateralFriction: BASE_LATERAL_FRICTION,
-    alive: true,
-    respawnTimer: 0,
-    color: color,
-    style: customStyle || 'sleek',
-    skin: customSkin || 'none',
-    glow: customGlow !== undefined ? customGlow : 60,
+    x: pos.x, y: pos.y, angle: Math.random() * Math.PI * 2,
+    vx: 0, vy: 0, promille: 0, hp: 100, score: 0,
+    mass: 1.0, topSpeed: BASE_TOP_SPEED, impactMultiplier: 1.0,
+    handling: 1.0, lateralFriction: BASE_LATERAL_FRICTION,
+    alive: true, respawnTimer: 0, color: color,
+    style: customStyle || 'sleek', skin: customSkin || 'none', glow: customGlow !== undefined ? customGlow : 60,
     input: { targetAngle: null, moving: false, boost: false },
-    effects: [],
-    stickyLocked: false,
-    stickyDirection: null,
-    stickyTimer: 0,
-    lastHitBy: null,
-    lastHitTick: 0,
-    boostActive: false,
-    boostTimer: 0,
-    boostCooldown: 0,
-    spawnTick: currentTick
+    effects: [], stickyLocked: false, stickyDirection: null, stickyTimer: 0,
+    lastHitBy: null, lastHitTick: 0, boostActive: false, boostTimer: 0, boostCooldown: 0,
+    spawnTick: room.currentTick
   };
   recalcStats(p);
   return p;
 }
 
-function respawnPlayer(p) {
+function respawnPlayer(room, p) {
   const pos = randomSafePosition(PLAYER_RADIUS);
-  p.x = pos.x;
-  p.y = pos.y;
-  p.angle = Math.random() * Math.PI * 2;
-  p.vx = 0;
-  p.vy = 0;
-  p.promille = 0;
-  p.hp = 100;
-  p.alive = true;
-  p.effects = [];
-  p.stickyLocked = false;
-  p.stickyDirection = null;
-  p.stickyTimer = 0;
-  p.lastHitBy = null;
-  p.lastHitTick = 0;
-  p.stickyTimer = 0;
-  p.boostActive = false;
-  p.boostCooldown = 0;
-  p.spawnTick = currentTick;
+  p.x = pos.x; p.y = pos.y; p.angle = Math.random() * Math.PI * 2;
+  p.vx = 0; p.vy = 0; p.promille = 0; p.hp = 100;
+  p.alive = true; p.respawnTimer = 0; p.boostActive = false; p.boostTimer = 0; p.boostCooldown = 0;
+  p.effects = []; p.stickyLocked = false; p.lastHitBy = null; p.lastHitTick = 0; p.spawnTick = room.currentTick;
+  p.input.moving = false; p.input.boost = false;
   recalcStats(p);
+  io.to(p.id).emit('respawned');
 }
 
-function killPlayer(p, reason) {
-  if (!p.alive) return;
-  p.alive = false;
-  p.respawnTimer = RESPAWN_TICKS;
-  p.vx = 0;
-  p.vy = 0;
+function applyDamage(room, p, amount, killerId) {
+  if (!p.alive || p.spawnTick + (1.5 * TICK_RATE) > room.currentTick) return;
+  p.hp -= amount;
+  if (killerId) { p.lastHitBy = killerId; p.lastHitTick = room.currentTick; }
+  if (p.hp <= 0) killPlayer(room, p, 'combat');
+}
 
+function killPlayer(room, p, reason) {
+  if (!p.alive) return;
+  p.alive = false; p.hp = 0; p.respawnTimer = RESPAWN_TICKS;
+  p.vx = 0; p.vy = 0;
   let killerName = null;
-  if (p.lastHitBy && (currentTick - p.lastHitTick) < KILL_CREDIT_TICKS) {
-    const killer = players.get(p.lastHitBy);
+  if (p.lastHitBy && (room.currentTick - p.lastHitTick) < KILL_CREDIT_TICKS) {
+    const killer = room.players.get(p.lastHitBy);
     if (killer && killer.alive) {
       killer.score += KILL_SCORE;
       killerName = killer.name;
       io.to(killer.id).emit('kill_confirmed');
     }
   }
-
   const finalScore = Math.floor(p.score);
   p.score = 0;
-
-  io.to(p.id).emit('killed', {
-    reason,
-    killerName: killerName || null,
-    respawnTime: RESPAWN_TICKS / TICK_RATE,
-    finalScore
-  });
+  io.to(p.id).emit('killed', { reason, killerName: killerName || null, respawnTime: RESPAWN_TICKS / TICK_RATE, finalScore });
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  EFFECT SYSTEM
 // ═══════════════════════════════════════════════════════════════
 
-function addEffect(p, type) {
+function addEffect(room, p, type) {
   const existing = p.effects.find(e => e.type === type);
-  if (existing) {
-    existing.startTick = currentTick;
-    return;
-  }
-  p.effects.push({ type, startTick: currentTick });
-  if (type === 'STICKY_WHEEL') {
-    p.stickyLocked = false;
-    p.stickyDirection = null;
-    p.stickyTimer = 0;
-  }
-}
-
-function removeEffect(p, type) {
-  p.effects = p.effects.filter(e => e.type !== type);
-  if (type === 'STICKY_WHEEL') {
-    p.stickyLocked = false;
-  }
-}
-
-function hasEffect(p, type) {
-  return p.effects.some(e => e.type === type);
-}
-
-function updateEffects(p) {
-  for (let i = p.effects.length - 1; i >= 0; i--) {
-    const e = p.effects[i];
-    if (currentTick - e.startTick >= EFFECT_DURATION_TICKS) {
-      if (e.type === 'STICKY_WHEEL') {
-        p.stickyLocked = false;
-      }
-      p.effects.splice(i, 1);
-    }
-  }
+  if (existing) { existing.startTick = room.currentTick; }
+  else { p.effects.push({ type, startTick: room.currentTick }); }
 }
 
 function clearAllEffects(p) {
@@ -396,35 +362,26 @@ function updateItemRespawns() {
 //  PHYSICS: INPUT PROCESSING WITH EFFECTS
 // ═══════════════════════════════════════════════════════════════
 
-function processInput(p) {
+function processInput(room, p) {
   const input = { ...p.input };
 
-  // Steering Invert (Mirror the target angle)
   if (hasEffect(p, 'STEERING_INVERT') && input.targetAngle !== null) {
     input.targetAngle = input.targetAngle + Math.PI;
   }
-
-  // Reverse Gear
   if (hasEffect(p, 'REVERSE_GEAR') && input.targetAngle !== null) {
     input.targetAngle = input.targetAngle + Math.PI;
   }
-
-  // Stuck Throttle
   if (hasEffect(p, 'STUCK_THROTTLE')) {
     input.moving = true;
   }
-
-  // Micro-Sleep
   if (hasEffect(p, 'MICRO_SLEEP')) {
     const e = p.effects.find(ef => ef.type === 'MICRO_SLEEP');
-    const elapsed = currentTick - e.startTick;
+    const elapsed = room.currentTick - e.startTick;
     const cyclePos = elapsed % MICROSLEEP_CYCLE;
     if (cyclePos >= MICROSLEEP_CYCLE - MICROSLEEP_FREEZE) {
       input.moving = false;
     }
   }
-
-  // Sticky Wheel
   if (hasEffect(p, 'STICKY_WHEEL')) {
     if (!p.stickyLocked && input.targetAngle !== null) {
       p.stickyDirection = input.targetAngle + (Math.random() > 0.5 ? 0.5 : -0.5);
@@ -437,7 +394,6 @@ function processInput(p) {
       if (p.stickyTimer <= 0) p.stickyLocked = false;
     }
   }
-
   return input;
 }
 
@@ -445,10 +401,9 @@ function processInput(p) {
 //  PHYSICS: VEHICLE KINEMATICS
 // ═══════════════════════════════════════════════════════════════
 
-function updatePlayerPhysics(p) {
+function updatePlayerPhysics(room, p) {
   if (!p.alive) return;
 
-  // Boost system
   if (p.boostCooldown > 0) p.boostCooldown--;
   if (p.boostActive) {
     p.boostTimer--;
@@ -462,19 +417,17 @@ function updatePlayerPhysics(p) {
     p.boostTimer = BOOST_DURATION_TICKS;
   }
 
-  // Sudden Acceleration
   if (hasEffect(p, 'SUDDEN_ACCELERATION') && Math.random() < 0.02) {
     p.boostActive = true;
     p.boostTimer = Math.round(0.4 * TICK_RATE);
   }
 
-  // Bumpy Ride
   if (hasEffect(p, 'BUMPY_RIDE') && Math.random() < 0.06) {
     p.vx += (Math.random() - 0.5) * 4;
     p.vy += (Math.random() - 0.5) * 4;
   }
 
-  const input = processInput(p);
+  const input = processInput(room, p);
   const turnRate = BASE_TURN * p.handling;
 
   // Steering (Rotate towards target angle)
@@ -537,40 +490,34 @@ function updatePlayerPhysics(p) {
 //  COLLISION DETECTION & RESOLUTION
 // ═══════════════════════════════════════════════════════════════
 
-function checkBorderCollision(p) {
+function checkBorderCollision(room, p) {
   if (!p.alive) return;
   if (p.x - PLAYER_RADIUS < BORDER_MARGIN ||
       p.x + PLAYER_RADIUS > WORLD_W - BORDER_MARGIN ||
       p.y - PLAYER_RADIUS < BORDER_MARGIN ||
       p.y + PLAYER_RADIUS > WORLD_H - BORDER_MARGIN) {
-    killPlayer(p, 'border');
+    killPlayer(room, p, 'border');
   }
 }
 
-function checkPitCollision(p) {
+function checkPitCollisions(room, p) {
   if (!p.alive) return;
   for (const pit of PITS) {
     if (circleRect(p.x, p.y, PLAYER_RADIUS, pit.x, pit.y, pit.w, pit.h)) {
-      // Find closest point on pit rectangle
-      let testX = p.x;
-      let testY = p.y;
-      if (p.x < pit.x) testX = pit.x;
-      else if (p.x > pit.x + pit.w) testX = pit.x + pit.w;
-      if (p.y < pit.y) testY = pit.y;
-      else if (p.y > pit.y + pit.h) testY = pit.y + pit.h;
+      const closestX = clamp(p.x, pit.x, pit.x + pit.w);
+      const closestY = clamp(p.y, pit.y, pit.y + pit.h);
+      const distX = p.x - closestX;
+      const distY = p.y - closestY;
+      const distance = Math.sqrt(distX * distX + distY * distY);
 
-      let distX = p.x - testX;
-      let distY = p.y - testY;
-      let distance = Math.sqrt((distX*distX) + (distY*distY));
-      
-      const entrySpeed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-      const dmg = Math.min(30, 5 + entrySpeed * 1.5); // Base 5, max 30
-      const bounceForce = 4 + entrySpeed * 0.8; // Scales with how fast you hit it
+      const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+      const entrySpeed = Math.max(speed, p.topSpeed * 0.5);
+      const dmg = Math.min(30, 5 + entrySpeed * 1.5);
+      const bounceForce = 4 + entrySpeed * 0.8;
 
       if (distance > 0.01) {
         let nx = distX / distance;
         let ny = distY / distance;
-        
         let overlap = PLAYER_RADIUS - distance;
         if (overlap < 0) overlap = 0;
         p.x += nx * (overlap + 2);
@@ -589,17 +536,16 @@ function checkPitCollision(p) {
       }
       
       p.hp -= dmg;
-      
-      collisionsThisTick.push({ x: p.x, y: p.y });
+      room.collisionsThisTick.push({ x: p.x, y: p.y });
       if (p.hp <= 0) {
-        killPlayer(p, 'pit');
+        killPlayer(room, p, 'pit');
         return;
       }
     }
   }
 }
 
-function checkPillarCollisions(p) {
+function checkPillarCollisions(room, p) {
   if (!p.alive) return;
   for (const pillar of PILLARS) {
     const d = dist(p.x, p.y, pillar.x, pillar.y);
@@ -616,21 +562,20 @@ function checkPillarCollisions(p) {
       p.vy -= 2 * dot * ny * 0.65;
 
       const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-      // Reduce pillar damage and cap it so getting stuck doesn't instantly kill
       const dmg = Math.min(spd * 0.8, 8); 
       p.hp -= dmg;
-      collisionsThisTick.push({ x: pillar.x + nx * pillar.radius, y: pillar.y + ny * pillar.radius });
+      room.collisionsThisTick.push({ x: pillar.x + nx * pillar.radius, y: pillar.y + ny * pillar.radius });
 
       if (p.hp <= 0) {
-        killPlayer(p, 'pillar');
+        killPlayer(room, p, 'pillar');
         return;
       }
     }
   }
 }
 
-function checkPlayerCollisions() {
-  const arr = Array.from(players.values()).filter(p => p.alive);
+function checkPlayerCollisions(room) {
+  const arr = Array.from(room.players.values()).filter(p => p.alive);
   for (let i = 0; i < arr.length; i++) {
     for (let j = i + 1; j < arr.length; j++) {
       const p1 = arr[i];
@@ -713,63 +658,55 @@ function getLeaderboard() {
     }));
 }
 
+function getEffectSerialData(p) {
+  return p.effects.map(e => e.type);
+}
+
 // ═══════════════════════════════════════════════════════════════
-//  MAIN GAME LOOP
+//  MAIN GAME LOOP (PER ROOM)
 // ═══════════════════════════════════════════════════════════════
 
-function gameTick() {
-  currentTick++;
-  collisionsThisTick.length = 0;
+function gameTick(room) {
+  room.currentTick++;
+  room.collisionsThisTick.length = 0;
 
-  // Update respawn timers
-  for (const p of players.values()) {
+  for (const p of room.players.values()) {
     if (!p.alive) {
       p.respawnTimer--;
       if (p.respawnTimer <= 0) {
-        respawnPlayer(p);
-        io.to(p.id).emit('respawned');
+        respawnPlayer(room, p);
       }
       continue;
     }
-    updateEffects(p);
-    updatePlayerPhysics(p);
+    processEffects(room, p);
+    updatePlayerPhysics(room, p);
   }
 
-  // Collisions
-  checkPlayerCollisions();
-  for (const p of players.values()) {
+  checkPlayerCollisions(room);
+  for (const p of room.players.values()) {
     if (!p.alive) continue;
-    checkPillarCollisions(p);
-    checkPitCollision(p);
-    checkBorderCollision(p);
+    checkPillarCollisions(room, p);
+    checkPitCollisions(room, p);
+    checkBorderCollision(room, p);
   }
 
-  // Item pickups
-  checkItemPickups();
-  updateItemRespawns();
+  checkItemPickups(room);
+  room.updateItemRespawns();
 
-  // Broadcast state
   const playerArr = [];
-  for (const p of players.values()) {
-    if (p.alive && currentTick % TICK_RATE === 0) {
-      p.score += 2; // +2 points per second for surviving
+  for (const p of room.players.values()) {
+    if (p.alive && room.currentTick % TICK_RATE === 0) {
+      p.score += 2;
     }
     playerArr.push({
       id: p.id,
-      x: Math.round(p.x * 10) / 10,
-      y: Math.round(p.y * 10) / 10,
+      x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10,
       angle: Math.round(p.angle * 1000) / 1000,
-      vx: Math.round(p.vx * 100) / 100,
-      vy: Math.round(p.vy * 100) / 100,
+      vx: Math.round(p.vx * 100) / 100, vy: Math.round(p.vy * 100) / 100,
       promille: Math.round(p.promille * 100) / 100,
-      hp: Math.round(p.hp),
-      score: p.score,
-      name: p.name,
-      alive: p.alive,
-      color: p.color,
-      style: p.style,
-      skin: p.skin,
-      glow: p.glow,
+      hp: Math.round(p.hp), score: p.score,
+      name: p.name, alive: p.alive,
+      color: p.color, style: p.style, skin: p.skin, glow: p.glow,
       effects: getEffectSerialData(p),
       boosting: p.boostActive,
       boostCooldownPct: p.boostCooldown > 0 ? p.boostCooldown / BOOST_COOLDOWN_TICKS : 0
@@ -777,20 +714,19 @@ function gameTick() {
   }
 
   const itemArr = [];
-  for (const item of items.values()) {
+  for (const item of room.items.values()) {
     itemArr.push({ id: item.id, x: item.x, y: item.y, type: item.type, effect: item.effect });
   }
 
-  io.emit('state', {
+  io.to(room.id).emit('state', {
     players: playerArr,
     items: itemArr,
-    collisions: collisionsThisTick.slice(),
-    tick: currentTick
+    collisions: room.collisionsThisTick.slice(),
+    tick: room.currentTick
   });
 
-  // Leaderboard every 10 ticks
-  if (currentTick % 10 === 0) {
-    io.emit('leaderboard', getLeaderboard());
+  if (room.currentTick % 10 === 0) {
+    io.to(room.id).emit('leaderboard', getLeaderboard(room));
   }
 }
 
@@ -802,14 +738,21 @@ io.on('connection', (socket) => {
   console.log(`[+] Connected: ${socket.id}`);
 
   socket.on('join', (data) => {
+    const room = getAvailableRoom();
+    
     const name = (data && typeof data.name === 'string') ? data.name.trim() : 'Driver';
     const customColor = (data && typeof data.color === 'string') ? data.color : null;
     const customStyle = typeof data.style === 'string' ? data.style : 'sleek';
     const customSkin = typeof data.skin === 'string' ? data.skin : 'none';
     const customGlow = typeof data.glow === 'number' ? data.glow : 60;
-    const player = createPlayer(socket.id, name, customColor, customStyle, customSkin, customGlow);
-    players.set(socket.id, player);
-    console.log(`[>] ${name} joined (${socket.id})`);
+    
+    const player = createPlayer(room, socket.id, name, customColor, customStyle, customSkin, customGlow);
+    room.players.set(socket.id, player);
+    
+    socket.roomId = room.id;
+    socket.join(room.id);
+    
+    console.log(`[>] ${name} joined ${room.id} (${socket.id})`);
 
     socket.emit('welcome', {
       id: socket.id,
@@ -822,11 +765,19 @@ io.on('connection', (socket) => {
   });
 
   socket.on('leave', () => {
-    players.delete(socket.id);
+    if (socket.roomId && activeRooms.has(socket.roomId)) {
+      const room = activeRooms.get(socket.roomId);
+      room.players.delete(socket.id);
+      socket.leave(socket.roomId);
+      socket.roomId = null;
+    }
   });
 
   socket.on('input', (data) => {
-    const p = players.get(socket.id);
+    if (!socket.roomId) return;
+    const room = activeRooms.get(socket.roomId);
+    if (!room) return;
+    const p = room.players.get(socket.id);
     if (!p || !p.alive) return;
     p.input.targetAngle = typeof data.targetAngle === 'number' ? data.targetAngle : null;
     p.input.moving = !!data.moving;
@@ -839,7 +790,9 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`[-] Disconnected: ${socket.id}`);
-    players.delete(socket.id);
+    if (socket.roomId && activeRooms.has(socket.roomId)) {
+      activeRooms.get(socket.roomId).players.delete(socket.id);
+    }
   });
 });
 
@@ -847,8 +800,17 @@ io.on('connection', (socket) => {
 //  START
 // ═══════════════════════════════════════════════════════════════
 
-initItems();
-setInterval(gameTick, TICK_MS);
+setInterval(() => {
+  for (const room of activeRooms.values()) {
+    gameTick(room);
+    
+    // Optional: Clean up empty rooms
+    if (room.players.size === 0 && room.currentTick > 600) {
+      activeRooms.delete(room.id);
+      console.log(`[-] Deleted empty room: ${room.id}`);
+    }
+  }
+}, TICK_MS);
 
 server.listen(PORT, () => {
   console.log(`\n  ╔══════════════════════════════════════╗`);
