@@ -1558,6 +1558,20 @@
         gameHUD.classList.add('hidden');
       });
     }
+
+    const reviveAdBtn = document.getElementById('reviveAdBtn');
+    if (reviveAdBtn) {
+      reviveAdBtn.addEventListener('click', () => {
+        if (socket && connected) {
+          socket.emit('revive_ad');
+          if (deathTimerInterval) {
+            clearInterval(deathTimerInterval);
+            deathTimerInterval = null;
+          }
+          deathScreen.classList.add('hidden');
+        }
+      });
+    }
   }
 
   // ─── MAIN RENDER LOOP ──────────────────────────────────────

@@ -298,12 +298,13 @@ function createPlayer(room, id, name, customColor, customStyle, customSkin, cust
   return p;
 }
 
-function respawnPlayer(room, p) {
+function respawnPlayer(room, p, isRevive = false) {
   const pos = randomSafePosition(PLAYER_RADIUS);
   p.x = pos.x; p.y = pos.y; p.angle = Math.random() * Math.PI * 2;
   p.vx = 0; p.vy = 0; p.promille = 0; p.hp = 100;
   p.alive = true; p.respawnTimer = 0; p.boostActive = false; p.boostTimer = 0; p.boostCooldown = 0;
-  p.effects = []; p.stickyLocked = false; p.lastHitBy = null; p.lastHitTick = 0; p.spawnTick = room.currentTick;
+  p.effects = []; p.stickyLocked = false; p.lastHitBy = null; p.lastHitTick = 0; 
+  if (!isRevive) p.spawnTick = room.currentTick;
   p.input.moving = false; p.input.boost = false;
   recalcStats(p);
   io.to(p.id).emit('respawned');
@@ -330,6 +331,8 @@ function killPlayer(room, p, reason) {
     }
   }
   const finalScore = Math.floor(p.score);
+  p.savedScore = finalScore;
+  p.savedSpawnTick = p.spawnTick;
   p.score = 0;
   io.to(p.id).emit('killed', { reason, killerName: killerName || null, respawnTime: RESPAWN_TICKS / TICK_RATE, finalScore });
 }
@@ -816,6 +819,19 @@ io.on('connection', (socket) => {
       socket.leave(socket.roomId);
       socket.roomId = null;
     }
+  });
+
+  socket.on('revive_ad', () => {
+    if (!socket.roomId) return;
+    const room = activeRooms.get(socket.roomId);
+    if (!room) return;
+    const p = room.players.get(socket.id);
+    if (!p || p.alive) return;
+    
+    p.score = p.savedScore || 0;
+    p.spawnTick = p.savedSpawnTick || room.currentTick;
+    
+    respawnPlayer(room, p, true);
   });
 
   socket.on('input', (data) => {
