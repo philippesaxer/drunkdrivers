@@ -149,7 +149,9 @@ class Room {
     const type = Math.random() < DRINK_SPAWN_CHANCE ? 'drink' : 'food';
     const effectType = type === 'drink' ? EFFECT_TYPES[Math.floor(Math.random() * EFFECT_TYPES.length)] : null;
     const id = ++this.itemIdCounter;
-    this.items.set(id, { id, x: pos.x, y: pos.y, type, effect: effectType });
+    const item = { id, x: Math.round(pos.x), y: Math.round(pos.y), type, effect: effectType };
+    this.items.set(id, item);
+    io.to(this.id).emit('itemSpawn', item);
     return id;
   }
 
@@ -385,6 +387,7 @@ function pickupItem(room, player, item) {
   }
   recalcStats(player);
   room.items.delete(item.id);
+  io.to(room.id).emit('itemPickup', item.id);
   room.pendingItemRespawns.push({ tick: room.currentTick + ITEM_RESPAWN_DELAY });
 }
 
@@ -751,14 +754,8 @@ function gameTick(room) {
     });
   }
 
-  const itemArr = [];
-  for (const item of room.items.values()) {
-    itemArr.push({ id: item.id, x: item.x, y: item.y, type: item.type, effect: item.effect });
-  }
-
   io.to(room.id).emit('state', {
     players: playerArr,
-    items: itemArr,
     collisions: room.collisionsThisTick.slice(),
     tick: room.currentTick
   });
@@ -798,6 +795,8 @@ io.on('connection', (socket) => {
     
     console.log(`[>] ${name} joined ${room.id} (${socket.id})`);
 
+    const itemArr = Array.from(room.items.values());
+
     socket.emit('welcome', {
       id: socket.id,
       roomId: room.id,
@@ -805,7 +804,8 @@ io.on('connection', (socket) => {
       pillars: PILLARS,
       pits: PITS,
       borderMargin: BORDER_MARGIN,
-      tickRate: TICK_RATE
+      tickRate: TICK_RATE,
+      items: itemArr
     });
   });
 

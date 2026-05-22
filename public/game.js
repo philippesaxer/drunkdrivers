@@ -1385,11 +1385,20 @@
       pits = data.pits;
       borderMargin = data.borderMargin;
       tickRate = data.tickRate;
+      serverItems = data.items || [];
       playing = true;
       menuOverlay.classList.add('hidden');
       gameHUD.classList.remove('hidden');
       hideDeathScreenUI();
       console.log('[Game] Joined as', localId, 'in room', data.roomId);
+    });
+
+    socket.on('itemSpawn', (item) => {
+      serverItems.push(item);
+    });
+
+    socket.on('itemPickup', (itemId) => {
+      serverItems = serverItems.filter(i => i.id !== itemId);
     });
 
     socket.on('joinError', (data) => {
@@ -1398,7 +1407,6 @@
 
     socket.on('state', (data) => {
       serverPlayers = data.players;
-      serverItems = data.items;
       if (data.collisions) {
         for (const c of data.collisions) spawnCollisionSparks(c.x, c.y);
       }
