@@ -1336,13 +1336,7 @@
 
   // ─── NETWORKING ─────────────────────────────────────────────
   function connectSocket() {
-    const regionSelect = document.getElementById('regionSelect');
-    const region = regionSelect ? regionSelect.value : 'eu';
-    let url = '';
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      url = `https://drunkdrivers-${region}.onrender.com`;
-    }
-    socket = io(url);
+    socket = io('https://drunkdrivers.onrender.com');
 
     socket.on('connect', () => {
       connected = true;
@@ -1521,19 +1515,6 @@
     });
     nicknameInput.focus();
 
-    const regionSelect = document.getElementById('regionSelect');
-    if (regionSelect) {
-      const savedRegion = localStorage.getItem('dd_region') || 'eu';
-      regionSelect.value = savedRegion;
-      regionSelect.addEventListener('change', () => {
-        localStorage.setItem('dd_region', regionSelect.value);
-        if (socket) {
-          socket.disconnect();
-        }
-        connectSocket();
-      });
-    }
-
     const deathCloseBtn = document.getElementById('deathCloseBtn');
     if (deathCloseBtn) {
       deathCloseBtn.addEventListener('click', () => {
@@ -1610,10 +1591,10 @@
 
   // ─── INITIALIZATION ─────────────────────────────────────────
   function init() {
-    setupMenu();
     connectSocket();
     setupInput();
     setupTouchControls();
+    setupMenu();
     initCustomizer();
     requestAnimationFrame(gameLoop);
     console.log('Drunk Drivers.io — Client initialized');
