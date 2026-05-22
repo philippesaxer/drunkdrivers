@@ -298,6 +298,16 @@ function addEffect(room, p, type) {
   else { p.effects.push({ type, startTick: room.currentTick }); }
 }
 
+function hasEffect(p, type) {
+  return p.effects.some(e => e.type === type);
+}
+
+function processEffects(room, p) {
+  p.effects = p.effects.filter(e => {
+    return (room.currentTick - e.startTick) < EFFECT_DURATION_TICKS;
+  });
+}
+
 function clearAllEffects(p) {
   p.effects = [];
   p.stickyLocked = false;
@@ -305,10 +315,10 @@ function clearAllEffects(p) {
   p.stickyTimer = 0;
 }
 
-function getEffectSerialData(p) {
+function getEffectSerialData(room, p) {
   return p.effects.map(e => ({
     type: e.type,
-    remaining: Math.max(0, (EFFECT_DURATION_TICKS - (currentTick - e.startTick)) / TICK_RATE)
+    remaining: Math.max(0, (EFFECT_DURATION_TICKS - (room.currentTick - e.startTick)) / TICK_RATE)
   }));
 }
 
@@ -607,9 +617,19 @@ function checkPlayerCollisions(room) {
         p2.x += nx * overlap * (p1.mass / totalMass);
         p2.y += ny * overlap * (p1.mass / totalMass);
 
-        const relSpeed = Math.sqrt(dvx * dvx + dvy * dvy);
-        const dmg1 = relSpeed * 2.0 * p2.impactMultiplier * 0.15; // Reduced damage
-        const dmg2 = relSpeed * 2.0 * p1.impactMultiplier * 0.15; // Reduced damage
+        const p1SpeedTowardsP2 = p1.vx * nx + p1.vy * ny;
+        const p2SpeedTowardsP1 = p2.vx * (-nx) + p2.vy * (-ny);
+
+        let dmg2 = 0;
+        if (p1SpeedTowardsP2 > 0.5) {
+          dmg2 = p1SpeedTowardsP2 * 3.0 * p1.impactMultiplier * 0.15;
+        }
+
+        let dmg1 = 0;
+        if (p2SpeedTowardsP1 > 0.5) {
+          dmg1 = p2SpeedTowardsP1 * 3.0 * p2.impactMultiplier * 0.15;
+        }
+
         p1.hp -= dmg1;
         p2.hp -= dmg2;
 
@@ -707,7 +727,7 @@ function gameTick(room) {
       hp: Math.round(p.hp), score: p.score,
       name: p.name, alive: p.alive,
       color: p.color, style: p.style, skin: p.skin, glow: p.glow,
-      effects: getEffectSerialData(p),
+      effects: getEffectSerialData(room, p),
       boosting: p.boostActive,
       boostCooldownPct: p.boostCooldown > 0 ? p.boostCooldown / BOOST_COOLDOWN_TICKS : 0
     });
