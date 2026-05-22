@@ -663,8 +663,11 @@ function getLeaderboard(room) {
     }));
 }
 
-function getEffectSerialData(p) {
-  return p.effects.map(e => e.type);
+function getEffectSerialData(room, p) {
+  return p.effects.map(e => ({
+    type: e.type,
+    remaining: Math.max(0, (EFFECT_DURATION_TICKS - (room.currentTick - e.startTick)) / TICK_RATE)
+  }));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -712,7 +715,7 @@ function gameTick(room) {
       hp: Math.round(p.hp), score: p.score,
       name: p.name, alive: p.alive,
       color: p.color, style: p.style, skin: p.skin, glow: p.glow,
-      effects: getEffectSerialData(p),
+      effects: getEffectSerialData(room, p),
       boosting: p.boostActive,
       boostCooldownPct: p.boostCooldown > 0 ? p.boostCooldown / BOOST_COOLDOWN_TICKS : 0
     });
