@@ -38,7 +38,10 @@
     cyberpunk: { label: 'Cyber', desc: 'Score > 5000 in one life', condition: (s) => s.highScore >= 5000 },
     gold: { label: 'VIP Gold', desc: 'Drink 500 items total', condition: (s) => s.totalDrinks >= 500 },
     veteran: { label: 'Veteran', desc: 'Survive 300s in one life', condition: (s) => s.longestSurvival >= 300 },
-    void: { label: 'Void', desc: 'Die to pits 50 times', condition: (s) => s.deathsByPit >= 50 }
+    void: { label: 'Void', desc: 'Die to pits 50 times', condition: (s) => s.deathsByPit >= 50 },
+    warlord: { label: 'Warlord', desc: 'Kill 100 players total', condition: (s) => s.totalKills >= 100 },
+    community: { label: 'Community', desc: 'Redeemed via secret code', condition: () => false },
+    owner: { label: 'Creator', desc: 'Reserved for the Boss', condition: () => false }
   };
 
   // ─── PERSISTENT STATS ────────────────────────────────────────
@@ -681,6 +684,47 @@
       drawRoundRect(c, -carW/2 + 2, -carH/2 + 2, carW - 4, carH - 4, 3);
       c.stroke();
       c.shadowBlur = 0;
+    } else if (skin === 'warlord') {
+      c.fillStyle = '#222';
+      c.fillRect(-carW/2, -carH/2, carW, carH);
+      c.fillStyle = '#8b0000'; 
+      c.beginPath(); c.arc(-carW/4, -carH/4, 8, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(0, carH/3, 12, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(carW/3, 0, 10, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#ff0000'; 
+      for (let i = 0; i < 15; i++) {
+        let x = -carW/2 + Math.random()*carW;
+        let y = -carH/2 + Math.random()*carH;
+        c.fillRect(x, y, 2 + Math.random()*2, 2 + Math.random()*2);
+      }
+    } else if (skin === 'community') {
+      c.fillStyle = '#051005';
+      c.fillRect(-carW/2, -carH/2, carW, carH);
+      c.fillStyle = '#00ff88';
+      c.font = '8px Orbitron';
+      c.fillText('1010', -carW/2 + 2, -carH/4);
+      c.fillText('0101', -carW/4 + 5, carH/3);
+      c.fillStyle = '#fff';
+      c.shadowColor = '#00ff88';
+      c.shadowBlur = 5;
+      c.fillText('</>', -5, 3);
+      c.shadowBlur = 0;
+    } else if (skin === 'owner') {
+      const timeSec = time / 500;
+      const g = c.createRadialGradient(0, 0, 0, 0, 0, carW);
+      g.addColorStop(0, '#ffffff');
+      g.addColorStop(0.3, `hsl(${timeSec * 60 % 360}, 100%, 50%)`);
+      g.addColorStop(0.8, `hsl(${(timeSec * 60 + 180) % 360}, 100%, 50%)`);
+      g.addColorStop(1, '#000000');
+      c.fillStyle = g;
+      c.fillRect(-carW/2, -carH/2, carW, carH);
+      c.shadowColor = '#ffffff';
+      c.shadowBlur = 20;
+      c.strokeStyle = '#ffffff';
+      c.lineWidth = 2;
+      drawRoundRect(c, -carW/4, -carH/4, carW/2, carH/2, 2);
+      c.stroke();
+      c.shadowBlur = 0;
     }
     c.restore();
 
@@ -1202,6 +1246,48 @@
 
       // Initial render
       updateCarousel();
+      
+      // Secret Code Logic
+      const codeInput = document.getElementById('skinCodeInput');
+      const submitBtn = document.getElementById('submitCodeBtn');
+      const resultMsg = document.getElementById('codeResultMsg');
+
+      if (codeInput && submitBtn) {
+        const checkCode = () => {
+          const code = codeInput.value.trim().toUpperCase();
+          if (!code) return;
+          
+          let unlockedKey = null;
+          if (code === 'DRUNKDRIVERS') {
+            unlockedKey = 'community';
+          } else if (code === 'PH1L1PP3-M4ST3R') {
+            unlockedKey = 'owner';
+          }
+
+          if (unlockedKey) {
+            if (!unlockedSkins.includes(unlockedKey)) {
+              unlockedSkins.push(unlockedKey);
+              saveStats();
+              resultMsg.textContent = `${CAR_SKINS[unlockedKey].label} Unlocked!`;
+              resultMsg.className = 'font-body text-[10px] mt-1 text-neon-green text-center';
+              codeInput.value = '';
+              carouselIndex = keys.indexOf(unlockedKey);
+              updateCarousel();
+            } else {
+              resultMsg.textContent = 'Already Unlocked!';
+              resultMsg.className = 'font-body text-[10px] mt-1 text-gray-400 text-center';
+            }
+          } else {
+            resultMsg.textContent = 'Invalid Code!';
+            resultMsg.className = 'font-body text-[10px] mt-1 text-neon-red text-center';
+          }
+          resultMsg.classList.remove('hidden');
+          setTimeout(() => resultMsg.classList.add('hidden'), 3000);
+        };
+
+        submitBtn.onclick = checkCode;
+        codeInput.onkeydown = (e) => { if (e.key === 'Enter') checkCode(); };
+      }
     }
 
     // Glow slider
