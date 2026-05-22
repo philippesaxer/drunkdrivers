@@ -1042,7 +1042,12 @@
 
   function showSkinUnlockPopup(skins, data) {
     if (skins.length === 0) {
-      finalizeDeathScreenUI(data);
+      if (deathTimerInterval) { clearInterval(deathTimerInterval); deathTimerInterval = null; }
+      document.getElementById('deathScreen').classList.add('hidden');
+      document.getElementById('menuOverlay').classList.remove('hidden');
+      document.getElementById('menuCard').classList.remove('hidden');
+      playing = false;
+      document.getElementById('gameHUD').classList.add('hidden');
       return;
     }
     
