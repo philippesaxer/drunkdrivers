@@ -163,14 +163,49 @@ class Room {
   }
 }
 
-function getAvailableRoom() {
-  for (const room of activeRooms.values()) {
-    if (room.players.size < MAX_PLAYERS_PER_ROOM) return room;
+function generateRoomId() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let id = '';
+  for (let i = 0; i < 4; i++) {
+    id += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  const newRoom = new Room('room-' + roomCounter++);
-  activeRooms.set(newRoom.id, newRoom);
-  console.log(`[+] Created new room: ${newRoom.id}`);
-  return newRoom;
+  return id;
+}
+
+function getAvailableRoom(requestedCode) {
+  if (requestedCode) {
+    requestedCode = requestedCode.toUpperCase().slice(0, 4);
+    if (activeRooms.has(requestedCode)) {
+      const r = activeRooms.get(requestedCode);
+      if (r.players.size < MAX_PLAYERS_PER_ROOM) return r;
+      return null; // Room full
+    } else {
+      const newRoom = new Room(requestedCode);
+      activeRooms.set(requestedCode, newRoom);
+      return newRoom;
+    }
+  } else {
+    // Find room with MOST players that is not full
+    let bestRoom = null;
+    let maxPlayers = -1;
+    for (const room of activeRooms.values()) {
+      if (room.players.size < MAX_PLAYERS_PER_ROOM && room.players.size > maxPlayers) {
+        bestRoom = room;
+        maxPlayers = room.players.size;
+      }
+    }
+    if (bestRoom) return bestRoom;
+    
+    // Generate new random code
+    let newId;
+    do {
+      newId = generateRoomId();
+    } while (activeRooms.has(newId));
+    
+    const newRoom = new Room(newId);
+    activeRooms.set(newId, newRoom);
+    return newRoom;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -741,7 +776,13 @@ io.on('connection', (socket) => {
   console.log(`[+] Connected: ${socket.id}`);
 
   socket.on('join', (data) => {
-    const room = getAvailableRoom();
+    const requestedCode = (data && typeof data.roomCode === 'string') ? data.roomCode.trim() : null;
+    const room = getAvailableRoom(requestedCode);
+    
+    if (!room) {
+      socket.emit('joinError', { message: 'This room is currently full.' });
+      return;
+    }
     
     const name = (data && typeof data.name === 'string') ? data.name.trim() : 'Driver';
     const customColor = (data && typeof data.color === 'string') ? data.color : null;
@@ -759,6 +800,7 @@ io.on('connection', (socket) => {
 
     socket.emit('welcome', {
       id: socket.id,
+      roomId: room.id,
       world: { width: WORLD_W, height: WORLD_H },
       pillars: PILLARS,
       pits: PITS,
