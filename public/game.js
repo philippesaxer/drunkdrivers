@@ -44,9 +44,17 @@
     owner: { label: 'Creator', desc: 'Reserved for the Boss', condition: () => false }
   };
 
-  // ─── PERSISTENT STATS ────────────────────────────────────────
-  let localStats = JSON.parse(localStorage.getItem('dd_stats') || '{"highScore":0,"totalDrinks":0,"totalKills":0,"deathsByPit":0,"longestSurvival":0}');
-  let unlockedSkins = JSON.parse(localStorage.getItem('dd_unlocked_skins') || '["none"]');
+  let localStats = { highScore: 0, totalDrinks: 0, totalKills: 0, deathsByPit: 0, longestSurvival: 0 };
+  let unlockedSkins = ['none'];
+  
+  try {
+    const savedStats = localStorage.getItem('dd_stats');
+    if (savedStats) localStats = JSON.parse(savedStats);
+    const savedSkins = localStorage.getItem('dd_unlocked_skins');
+    if (savedSkins) unlockedSkins = JSON.parse(savedSkins);
+  } catch (e) {
+    console.warn('localStorage is not available, progress will not be saved.');
+  }
 
   function updateMenuHighscoreUI() {
     const el = document.getElementById('menuHighscore');
@@ -54,8 +62,12 @@
   }
 
   function saveStats() {
-    localStorage.setItem('dd_stats', JSON.stringify(localStats));
-    localStorage.setItem('dd_unlocked_skins', JSON.stringify(unlockedSkins));
+    try {
+      localStorage.setItem('dd_stats', JSON.stringify(localStats));
+      localStorage.setItem('dd_unlocked_skins', JSON.stringify(unlockedSkins));
+    } catch (e) {
+      console.warn('Could not save to localStorage');
+    }
     updateMenuHighscoreUI();
   }
   
