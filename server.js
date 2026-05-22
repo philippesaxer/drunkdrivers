@@ -152,6 +152,15 @@ class Room {
     this.items.set(id, { id, x: pos.x, y: pos.y, type, effect: effectType });
     return id;
   }
+
+  updateItemRespawns() {
+    for (let i = this.pendingItemRespawns.length - 1; i >= 0; i--) {
+      if (this.currentTick >= this.pendingItemRespawns[i].tick) {
+        this.spawnItem();
+        this.pendingItemRespawns.splice(i, 1);
+      }
+    }
+  }
 }
 
 function getAvailableRoom() {
@@ -326,27 +335,12 @@ function getEffectSerialData(room, p) {
 //  ITEM SYSTEM
 // ═══════════════════════════════════════════════════════════════
 
-function spawnItem() {
-  const pos = randomSafePosition(ITEM_RADIUS);
-  const type = Math.random() < DRINK_SPAWN_CHANCE ? 'drink' : 'food';
-  const effectType = type === 'drink' ? EFFECT_TYPES[Math.floor(Math.random() * EFFECT_TYPES.length)] : null;
-  const id = ++itemIdCounter;
-  items.set(id, { id, x: pos.x, y: pos.y, type, effect: effectType });
-  return id;
-}
-
-function initItems() {
-  for (let i = 0; i < MAX_ITEMS; i++) {
-    spawnItem();
-  }
-}
-
-function pickupItem(player, item) {
-  player.score += 10; // New way to get points!
+function pickupItem(room, player, item) {
+  player.score += 10;
   if (item.type === 'drink') {
     player.promille = Math.min(MAX_PROMILLE, player.promille + DRINK_PROMILLE);
     const effectType = item.effect || EFFECT_TYPES[Math.floor(Math.random() * EFFECT_TYPES.length)];
-    addEffect(player, effectType);
+    addEffect(room, player, effectType);
     io.to(player.id).emit('pickup', { type: 'drink', effect: effectType, promille: player.promille });
   } else {
     player.promille = Math.max(0, player.promille + FOOD_PROMILLE);
@@ -355,17 +349,8 @@ function pickupItem(player, item) {
     io.to(player.id).emit('pickup', { type: 'food', promille: player.promille });
   }
   recalcStats(player);
-  items.delete(item.id);
-  pendingItemRespawns.push({ tick: currentTick + ITEM_RESPAWN_DELAY });
-}
-
-function updateItemRespawns() {
-  for (let i = pendingItemRespawns.length - 1; i >= 0; i--) {
-    if (currentTick >= pendingItemRespawns[i].tick) {
-      spawnItem();
-      pendingItemRespawns.splice(i, 1);
-    }
-  }
+  room.items.delete(item.id);
+  room.pendingItemRespawns.push({ tick: room.currentTick + ITEM_RESPAWN_DELAY });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -665,14 +650,14 @@ function checkItemPickups(room) {
 //  LEADERBOARD
 // ═══════════════════════════════════════════════════════════════
 
-function getLeaderboard() {
-  return Array.from(players.values())
+function getLeaderboard(room) {
+  return Array.from(room.players.values())
     .filter(p => p.alive)
     .sort((a, b) => b.score - a.score)
     .slice(0, 10)
     .map(p => ({
       name: p.name,
-      time: Math.floor((currentTick - p.spawnTick) / TICK_RATE),
+      time: Math.floor((room.currentTick - p.spawnTick) / TICK_RATE),
       score: p.score,
       id: p.id
     }));
@@ -727,7 +712,7 @@ function gameTick(room) {
       hp: Math.round(p.hp), score: p.score,
       name: p.name, alive: p.alive,
       color: p.color, style: p.style, skin: p.skin, glow: p.glow,
-      effects: getEffectSerialData(room, p),
+      effects: getEffectSerialData(p),
       boosting: p.boostActive,
       boostCooldownPct: p.boostCooldown > 0 ? p.boostCooldown / BOOST_COOLDOWN_TICKS : 0
     });
