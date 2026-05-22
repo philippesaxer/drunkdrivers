@@ -118,7 +118,7 @@ const PITS = [
 //  GAME STATE (MULTI-ROOM)
 // ═══════════════════════════════════════════════════════════════
 
-const MAX_PLAYERS_PER_ROOM = 50;
+const MAX_PLAYERS_PER_ROOM = 30;
 const activeRooms = new Map();
 let roomCounter = 1;
 
