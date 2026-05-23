@@ -840,6 +840,19 @@ io.on('connection', (socket) => {
     respawnPlayer(room, p);
   });
 
+  socket.on('update_appearance', (data) => {
+    if (!socket.roomId) return;
+    const room = activeRooms.get(socket.roomId);
+    if (!room) return;
+    const p = room.players.get(socket.id);
+    if (!p) return;
+    
+    if (data.color) p.color = data.color;
+    if (data.style) p.style = data.style;
+    if (data.glow !== undefined) p.glow = parseInt(data.glow);
+    if (data.skin) p.skin = data.skin;
+  });
+
   socket.on('input', (data) => {
     if (!socket.roomId) return;
     const room = activeRooms.get(socket.roomId);

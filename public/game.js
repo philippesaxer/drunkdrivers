@@ -1092,6 +1092,14 @@
     const onClose = () => cleanup();
     const onEquip = () => {
       customSkin = skinKey;
+      if (socket && connected) {
+        socket.emit('update_appearance', {
+          color: customColor,
+          style: customStyle,
+          glow: customGlow,
+          skin: customSkin
+        });
+      }
       cleanup();
     };
     
