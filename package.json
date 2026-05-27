@@ -7,10 +7,16 @@
     "start": "node server.js",
     "dev": "node server.js"
   },
-  "keywords": ["game", "io", "multiplayer", "socket.io"],
+  "keywords": [
+    "game",
+    "io",
+    "multiplayer",
+    "socket.io"
+  ],
   "license": "MIT",
   "dependencies": {
     "express": "^4.21.0",
-    "socket.io": "^4.7.5"
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.8.3"
   }
 }

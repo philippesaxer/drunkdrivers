@@ -1151,6 +1151,7 @@
       if (t > 0) {
         deathTimer.textContent = t;
       } else {
+        deathTimer.textContent = '0';
         clearInterval(deathTimerInterval);
         deathTimerInterval = null;
         if (socket && connected) socket.emit('request_respawn');
